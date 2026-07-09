@@ -506,34 +506,50 @@ body {
 .vertical-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 4px;
+  width: 8px; /* Wider professional groove */
   height: 90%;
   background: var(--bg-fader-track);
-  border-radius: 2px;
+  border-radius: 4px;
   outline: none;
   writing-mode: vertical-lr; /* IE */
   direction: rtl;            /* Bottom-up for vertical */
   margin: 0;
+  border: 1px solid var(--border-panel);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.app-container.light .vertical-slider {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Webkit Fader Thumb */
 .vertical-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 32px;
-  border-radius: 4px;
-  background: var(--fader-thumb);
-  border: 1px solid var(--border-panel);
+  width: 32px; /* Wider than tall (console cap style) */
+  height: 18px;
+  border-radius: 2px;
+  background: #252d28; /* Dark metallic cap background */
+  border: 1px solid #3c4941;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  background-image: linear-gradient(to bottom, transparent 48%, var(--border-panel) 48%, var(--border-panel) 52%, transparent 52%);
-  transition: background-color 0.15s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+  /* A bright red indicator line in the center */
+  background-image: linear-gradient(to bottom, #303a33 0%, #252d28 42%, #ef4444 42%, #ef4444 58%, #1c2420 58%, #151b18 100%);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .vertical-slider::-webkit-slider-thumb:hover {
-  background-color: var(--accent-brand);
+  border-color: var(--accent-brand);
 }
+
+.app-container.light .vertical-slider::-webkit-slider-thumb {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  /* A dark indicator line for light mode */
+  background-image: linear-gradient(to bottom, #f8fafc 0%, #cbd5e1 42%, #0f172a 42%, #0f172a 58%, #94a3b8 58%, #64748b 100%);
+}
+
 
 /* Mixer Footer elements */
 .channel-label {

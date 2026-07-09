@@ -218,6 +218,13 @@ function App() {
   async function handleTriggerJingle(categoryId: string) {
     if (!config || config.master_mute) return;
     setErrorMessage(null);
+    
+    // Toggle behavior: If clicking the active category, stop it
+    if (activeCategory === categoryId) {
+      await handleStopJingle();
+      return;
+    }
+
     try {
       setActiveCategory(categoryId);
       setPlayingSong("...");
@@ -229,6 +236,7 @@ function App() {
       setErrorMessage(t.errorNoSongs);
     }
   }
+
 
   // Stop Jingle
   async function handleStopJingle() {
