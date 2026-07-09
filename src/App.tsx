@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import rfvLogo from "./assets/rfv_logo.jpg";
+// import rfvLogo from "./assets/rfv_logo.jpg"; // Kept in project for future use
 import "./App.css";
 
 interface JingleCategory {
@@ -608,13 +608,6 @@ function App() {
             <button className="btn-control admin-btn" onClick={() => setIsSettingsOpen(true)}>
               ⚙️ {t.btnSettings}
             </button>
-          </div>
-
-          {/* RFV Leonberg Logo Panel */}
-          <div className="panel-card logo-card">
-            <div className="logo-container">
-              <img src={rfvLogo} alt="RFV Leonberg Logo" className="rfv-logo-img" />
-            </div>
           </div>
         </div>
 
