@@ -43,12 +43,17 @@ fn save_config_cmd(app: AppHandle, state: State<'_, AppState>, config: AppConfig
 }
 
 #[tauri::command]
-fn select_audio_file() -> Option<String> {
-    let file = rfd::FileDialog::new()
+fn select_audio_files() -> Option<Vec<String>> {
+    let files = rfd::FileDialog::new()
         .add_filter("Audio Files", &["mp3", "wav", "ogg", "m4a", "flac"])
-        .pick_file();
+        .pick_files();
 
-    file.map(|p| p.to_string_lossy().to_string())
+    files.map(|paths| {
+        paths
+            .into_iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect()
+    })
 }
 
 #[tauri::command]
@@ -195,7 +200,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_config,
             save_config_cmd,
-            select_audio_file,
+            select_audio_files,
             toggle_spotify,
             set_spotify_mixer_volume,
             set_spotify_mixer_mute,

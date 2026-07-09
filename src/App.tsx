@@ -254,39 +254,7 @@ function App() {
     }
   }
 
-  // Prevent browser focus auto-scrolling when clicking/dragging inputs (vertical sliders)
-  useEffect(() => {
-    const preventFocusScroll = (e: Event) => {
-      // Force window to stay at (0, 0)
-      if (window.scrollY !== 0 || window.scrollX !== 0) {
-        window.scrollTo(0, 0);
-      }
-      
-      // Reset scroll for the event target (if it scrolled)
-      const target = e.target as HTMLElement;
-      if (target) {
-        try {
-          if (target.scrollTop !== undefined && target.scrollTop !== 0) {
-            target.scrollTop = 0;
-          }
-          if (target.scrollLeft !== undefined && target.scrollLeft !== 0) {
-            target.scrollLeft = 0;
-          }
-        } catch (_) {}
-      }
 
-      // Explicitly lock document element and body scrolls
-      if (document.documentElement.scrollTop !== 0) {
-        document.documentElement.scrollTop = 0;
-      }
-      if (document.body.scrollTop !== 0) {
-        document.body.scrollTop = 0;
-      }
-    };
-
-    window.addEventListener("scroll", preventFocusScroll, true);
-    return () => window.removeEventListener("scroll", preventFocusScroll, true);
-  }, []);
 
 
 
@@ -442,21 +410,29 @@ function App() {
     }
   }
 
-  // Add song to category pool
+  // Add songs to category pool (allows selecting multiple files)
   async function handleAddSong(categoryId: string) {
     if (!config) return;
     try {
-      const selectedPath = await invoke<string | null>("select_audio_file");
-      if (selectedPath) {
+      const selectedPaths = await invoke<string[] | null>("select_audio_files");
+      if (selectedPaths && selectedPaths.length > 0) {
         const updatedConfig = { ...config };
         const category = updatedConfig.categories[categoryId];
-        if (!category.songs.includes(selectedPath)) {
-          category.songs.push(selectedPath);
+        let changed = false;
+
+        for (const path of selectedPaths) {
+          if (!category.songs.includes(path)) {
+            category.songs.push(path);
+            changed = true;
+          }
+        }
+
+        if (changed) {
           await saveConfig(updatedConfig);
         }
       }
     } catch (err) {
-      console.error("Failed to add song:", err);
+      console.error("Failed to add songs:", err);
     }
   }
 
