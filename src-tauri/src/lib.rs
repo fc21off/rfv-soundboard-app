@@ -165,6 +165,11 @@ fn set_jingle_volume(state: State<'_, AppState>, vol: f32) {
     state.player.set_volume(vol);
 }
 
+#[tauri::command]
+fn get_spotify_playback_state() -> bool {
+    windows_audio::is_spotify_active()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -195,8 +200,10 @@ pub fn run() {
             stop_current_jingle,
             mute_all,
             is_jingle_playing,
-            set_jingle_volume
+            set_jingle_volume,
+            get_spotify_playback_state
         ])
+
 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

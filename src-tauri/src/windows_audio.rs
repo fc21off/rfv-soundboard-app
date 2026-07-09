@@ -105,3 +105,28 @@ pub fn simulate_media_key_play_pause() {
     }
 }
 
+/// Check if Spotify has an active playback audio session
+pub fn is_spotify_active() -> bool {
+    let mut active = false;
+    let _ = run_com_audio_op(|session_enum| unsafe {
+        let count = session_enum.GetCount()?;
+        for i in 0..count {
+            let session_control = session_enum.GetSession(i)?;
+            let session_control2: IAudioSessionControl2 = session_control.cast()?;
+            let pid = session_control2.GetProcessId()?;
+            if let Some(name) = get_process_name(pid) {
+                if name.contains("spotify") {
+                    let state = session_control.GetState()?;
+                    if state == windows::Win32::Media::Audio::AudioSessionStateActive {
+                        active = true;
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(())
+    });
+    active
+}
+
+

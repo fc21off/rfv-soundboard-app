@@ -114,6 +114,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [playingSong, setPlayingSong] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [spotifyPlaying, setSpotifyPlaying] = useState(false);
 
   // Load config on startup
   useEffect(() => {
@@ -129,6 +130,10 @@ function App() {
           setActiveCategory(null);
           setPlayingSong(null);
         }
+        
+        // Poll Spotify active session state
+        const isSpotifyActive = await invoke<boolean>("get_spotify_playback_state");
+        setSpotifyPlaying(isSpotifyActive);
       } catch (err) {
         console.error("Playback status poll failed:", err);
       }
@@ -136,6 +141,7 @@ function App() {
 
     return () => clearInterval(interval);
   }, []);
+
 
   async function loadConfig() {
     try {
@@ -366,11 +372,16 @@ function App() {
           <div className="panel-card spotify-card">
             <span className="system-title">{t.spotifyTitle}</span>
             <div className="spotify-box">
-              <button className="spotify-round-btn" onClick={handleSpotifyToggle} title={t.spotifyToggle}>
+              <button 
+                className={`spotify-round-btn ${spotifyPlaying ? "playing" : "paused"}`} 
+                onClick={handleSpotifyToggle} 
+                title={t.spotifyToggle}
+              >
                 <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
                   <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.893-.982-.336.075-.668-.135-.744-.47-.077-.337.135-.669.47-.745 3.848-.879 7.143-.51 9.82.13.296.18.387.563.207.86zm1.224-2.723c-.226.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.08-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.67-1.114 8.24-.57 11.35 1.346.366.226.486.707.256 1.068zm.105-2.81c-3.26-1.937-8.644-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.151-.5.133-1.026.633-1.178 3.596-1.092 9.539-.882 13.3 1.348.448.266.596.843.33 1.291-.266.449-.842.597-1.29.33-.001 0-.002-.001-.003-.002z"/>
                 </svg>
               </button>
+
               <span className="spotify-status-label">{t.spotifyToggle}</span>
               
               <label className="spotify-mute-checkbox">
