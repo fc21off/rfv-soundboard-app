@@ -320,76 +320,54 @@ function App() {
           <h1>{t.title}</h1>
           <span>{t.subtitle}</span>
         </div>
-        <div className="header-actions">
-          <button className="btn-control" onClick={() => setIsSongsOpen(true)}>
-            🎵 {t.btnManageSongs}
-          </button>
-          <button className="btn-control" onClick={() => setIsSettingsOpen(true)}>
-            ⚙️ {t.btnSettings}
-          </button>
-        </div>
       </header>
-
-      {/* Error Bar */}
-      {errorMessage && (
-        <div style={{
-          background: "#ef444422",
-          border: "1px solid #ef4444",
-          borderRadius: "8px",
-          padding: "0.75rem",
-          color: "#f87171",
-          fontSize: "0.85rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexShrink: 0
-        }}>
-          <span style={{ fontWeight: "600" }}>{errorMessage}</span>
-          <button 
-            style={{ background: "transparent", border: "none", color: "#f87171", cursor: "pointer", fontWeight: "bold" }}
-            onClick={() => setErrorMessage(null)}
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {/* Main Console Columns */}
       <div className="app-body">
-        {/* Left Spalte: System & Spotify */}
+        {/* Left Spalte: System & Spotify & Administration */}
         <div className="system-column">
-          <div className="panel-card" style={{ flexGrow: 1 }}>
+          {/* Spotify Panel */}
+          <div className="panel-card spotify-card">
             <span className="system-title">{t.spotifyTitle}</span>
             <div className="spotify-box">
-              <div className="spotify-header">
-                <span className="spotify-title-text">SPOTIFY</span>
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={config.spotify_mute} 
-                    onChange={handleSpotifyMuteToggle}
-                    style={{ cursor: "pointer" }}
-                  />
-                  {t.spotifyMute}
-                </label>
-              </div>
-              
-              <button className="spotify-btn" onClick={handleSpotifyToggle}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <button className="spotify-round-btn" onClick={handleSpotifyToggle} title={t.spotifyToggle}>
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
                   <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.893-.982-.336.075-.668-.135-.744-.47-.077-.337.135-.669.47-.745 3.848-.879 7.143-.51 9.82.13.296.18.387.563.207.86zm1.224-2.723c-.226.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.08-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.67-1.114 8.24-.57 11.35 1.346.366.226.486.707.256 1.068zm.105-2.81c-3.26-1.937-8.644-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.151-.5.133-1.026.633-1.178 3.596-1.092 9.539-.882 13.3 1.348.448.266.596.843.33 1.291-.266.449-.842.597-1.29.33-.001 0-.002-.001-.003-.002z"/>
                 </svg>
-                {t.spotifyToggle}
               </button>
+              <span className="spotify-status-label">{t.spotifyToggle}</span>
+              
+              <label className="spotify-mute-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={config.spotify_mute} 
+                  onChange={handleSpotifyMuteToggle}
+                  style={{ cursor: "pointer" }}
+                />
+                {t.spotifyMute}
+              </label>
             </div>
           </div>
 
-          <div className="panel-card master-controls-box">
+          {/* Master Controls Panel */}
+          <div className="panel-card master-card">
             <span className="system-title">MASTER CONTROLS</span>
             <button 
               className={`master-mute-btn ${config.master_mute ? "active" : ""}`}
               onClick={handleMasterMuteToggle}
             >
               {config.master_mute ? t.masterUnmute : t.masterMute}
+            </button>
+          </div>
+
+          {/* Administration Panel */}
+          <div className="panel-card admin-card">
+            <span className="system-title">ADMINISTRATION</span>
+            <button className="btn-control admin-btn" onClick={() => setIsSongsOpen(true)}>
+              🎵 {t.btnManageSongs}
+            </button>
+            <button className="btn-control admin-btn" onClick={() => setIsSettingsOpen(true)}>
+              ⚙️ {t.btnSettings}
             </button>
           </div>
         </div>
@@ -492,6 +470,14 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* FIXED TOAST NOTIFICATION: prevents layout shifting */}
+      {errorMessage && (
+        <div className="error-toast">
+          <span className="error-toast-text">{errorMessage}</span>
+          <button className="error-toast-close" onClick={() => setErrorMessage(null)}>✕</button>
+        </div>
+      )}
 
       {/* MODAL 1: Lieder-Datenbank */}
       {isSongsOpen && (
