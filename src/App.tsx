@@ -303,12 +303,40 @@ function App() {
     return path.split(/[/\\]/).pop() || path;
   }
 
-  // Decibel converter for mixers
+  // Decibel converter for mixers, linearly mapped to fader scale ticks:
+  // 100% -> 0 dB
+  // 83.3% -> -3 dB
+  // 66.7% -> -6 dB
+  // 50% -> -12 dB
+  // 33.3% -> -24 dB
+  // 16.7% -> -48 dB
+  // 0% -> -oo dB
   function formatDb(vol: number): string {
-    if (vol <= 0.01) return "-∞ dB";
-    const db = Math.round(20 * Math.log10(vol));
-    return `${db > 0 ? "+" : ""}${db} dB`;
+    const pct = Math.round(vol * 100);
+    if (pct <= 0) return "-∞ dB";
+    if (pct === 100) return "0 dB";
+    
+    if (pct >= 83.3) {
+      const db = -3 + ((pct - 83.3) / 16.7) * 3;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 66.7) {
+      const db = -6 + ((pct - 66.7) / 16.6) * 3;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 50.0) {
+      const db = -12 + ((pct - 50.0) / 16.7) * 6;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 33.3) {
+      const db = -24 + ((pct - 33.3) / 16.7) * 12;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 16.7) {
+      const db = -48 + ((pct - 16.7) / 16.6) * 24;
+      return `${Math.round(db)} dB`;
+    } else {
+      const db = -70 + (pct / 16.7) * 22;
+      return `${Math.round(db)} dB`;
+    }
   }
+
 
   if (!config) {
     return (
@@ -430,7 +458,7 @@ function App() {
               <span className="channel-db">{formatDb(config.spotify_volume)}</span>
               <div className="fader-strip">
                 <div className="fader-scale">
-                  <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
+                  <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                 </div>
                 <input 
                   type="range"
@@ -457,7 +485,7 @@ function App() {
                   <span className="channel-db">{formatDb(vol)}</span>
                   <div className="fader-strip">
                     <div className="fader-scale">
-                      <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
+                      <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                     </div>
                     <input 
                       type="range"
@@ -475,6 +503,7 @@ function App() {
                 </div>
               );
             })}
+
           </div>
         </div>
       </div>

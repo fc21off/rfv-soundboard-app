@@ -530,26 +530,27 @@ body {
   width: 32px; /* Wider than tall (console cap style) */
   height: 18px;
   border-radius: 2px;
-  background: #252d28; /* Dark metallic cap background */
-  border: 1px solid #3c4941;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-  /* A bright red indicator line in the center */
-  background-image: linear-gradient(to bottom, #303a33 0%, #252d28 42%, #ef4444 42%, #ef4444 58%, #1c2420 58%, #151b18 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  /* A dark slate horizontal line in the middle */
+  background-image: linear-gradient(to bottom, transparent 44%, #1e293b 44%, #1e293b 56%, transparent 56%);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .vertical-slider::-webkit-slider-thumb:hover {
+  background-color: #f8fafc;
   border-color: var(--accent-brand);
 }
 
 .app-container.light .vertical-slider::-webkit-slider-thumb {
-  background: #e2e8f0;
+  background: #ffffff;
   border-color: #94a3b8;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  /* A dark indicator line for light mode */
-  background-image: linear-gradient(to bottom, #f8fafc 0%, #cbd5e1 42%, #0f172a 42%, #0f172a 58%, #94a3b8 58%, #64748b 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background-image: linear-gradient(to bottom, transparent 44%, #0f172a 44%, #0f172a 56%, transparent 56%);
 }
+
 
 
 /* Mixer Footer elements */
