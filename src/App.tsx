@@ -13,29 +13,114 @@ interface AppConfig {
   spotify_volume: number;
   spotify_mute: boolean;
   master_mute: boolean;
+  theme: string;
+  language: string;
+  fade_duration_ms: number;
   categories: Record<string, JingleCategory>;
 }
 
 const CATEGORIES_INFO = [
-  { id: "pruefung", label: "Prüfung eröffnen", desc: "Startfreigabe / Einzug der Reiter", cssClass: "pruefung" },
-  { id: "fehlerfrei", label: "Fehlerfrei", desc: "Glückwunsch! Fehlerfreie Runde", cssClass: "fehlerfrei" },
-  { id: "einlauf", label: "Siegerehrung Einlauf", desc: "Einmarsch zur Siegerehrung", cssClass: "einlauf" },
-  { id: "siegerrunde", label: "Siegerrunde", desc: "Ehrenrunde des Siegers", cssClass: "siegerrunde" },
+  { id: "pruefung", labelKey: "pruefung", descKey: "pruefungDesc", cssClass: "pruefung" },
+  { id: "fehlerfrei", labelKey: "fehlerfrei", descKey: "fehlerfreiDesc", cssClass: "fehlerfrei" },
+  { id: "einlauf", labelKey: "einlauf", descKey: "einlaufDesc", cssClass: "einlauf" },
+  { id: "siegerrunde", labelKey: "siegerrunde", descKey: "siegerrundeDesc", cssClass: "siegerrunde" },
 ];
+
+const TRANSLATIONS = {
+  de: {
+    title: "EQUISOUND",
+    subtitle: "EQUITATION CONSOLE BY RFV LEONBERG",
+    btnManageSongs: "Lieder verwalten",
+    btnSettings: "System-Einstellungen",
+    spotifyTitle: "SPOTIFY AUDIO-SEKTION",
+    spotifyToggle: "PLAY / PAUSE",
+    spotifyMute: "Stumm (Mute)",
+    masterMute: "ALLE SOUNDS AUS (MUTE)",
+    masterUnmute: "CONSOLE AKTIVIEREN",
+    stopJingle: "STOP ACTIVE JINGLE",
+    mixerTitle: "RUNDFUNK-MISCHPULT",
+    spotifyLabel: "SPOTIFY",
+    pruefung: "Prüfung eröffnen",
+    pruefungDesc: "Startfreigabe / Einmarsch",
+    fehlerfrei: "Fehlerfrei",
+    fehlerfreiDesc: "Fehlerfreie Runde",
+    einlauf: "Siegerehrung Einlauf",
+    einlaufDesc: "Einlauf zur Siegerehrung",
+    siegerrunde: "Siegerrunde",
+    siegerrundeDesc: "Ehrenrunde des Siegers",
+    jingleActive: "JINGLE AKTIV",
+    jingleIdle: "BEREIT",
+    songsCountSingle: "Lied geladen",
+    songsCountPlural: "Lieder geladen",
+    modalSongsTitle: "Lieder-Datenbank & Pools",
+    modalSettingsTitle: "System-Einstellungen",
+    close: "Schließen & Speichern",
+    addSong: "Lied hinzufügen",
+    noSongs: "Keine Lieder in dieser Kategorie",
+    settingLanguage: "SPRACHE (LANGUAGE)",
+    settingTheme: "DESIGN-MODUS (THEME)",
+    settingThemeDark: "Nacht-Modus (Dunkel)",
+    settingThemeLight: "Tag-Modus (Hell / Outdoor)",
+    settingFade: "FADE-OUT DAUER (MS)",
+    btnReset: "Werksreset",
+    resetConfirm: "Möchtest du wirklich alle Einstellungen auf Werkseinstellungen zurücksetzen?",
+    errorNoSongs: "Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu."
+  },
+  en: {
+    title: "EQUISOUND",
+    subtitle: "EQUITATION CONSOLE BY RFV LEONBERG",
+    btnManageSongs: "Manage Songs",
+    btnSettings: "System Settings",
+    spotifyTitle: "SPOTIFY AUDIO SECTION",
+    spotifyToggle: "PLAY / PAUSE",
+    spotifyMute: "Mute Spotify",
+    masterMute: "MUTE ALL SOUNDS",
+    masterUnmute: "UNMUTE CONSOLE",
+    stopJingle: "STOP ACTIVE JINGLE",
+    mixerTitle: "BROADCAST MIXER",
+    spotifyLabel: "SPOTIFY",
+    pruefung: "Open Class",
+    pruefungDesc: "Class Opening / Riding in",
+    fehlerfrei: "Clear Round",
+    fehlerfreiDesc: "Clear Round Fanfare",
+    einlauf: "Award Entrance",
+    einlaufDesc: "Award Ceremony Entrance",
+    siegerrunde: "Victory Lap",
+    siegerrundeDesc: "Winner's Victory Lap",
+    jingleActive: "JINGLE PLAYING",
+    jingleIdle: "STANDBY",
+    songsCountSingle: "song loaded",
+    songsCountPlural: "songs loaded",
+    modalSongsTitle: "Song Database & Pools",
+    modalSettingsTitle: "System Settings",
+    close: "Close & Save",
+    addSong: "Add Song",
+    noSongs: "No songs in this category",
+    settingLanguage: "LANGUAGE",
+    settingTheme: "COLOR THEME",
+    settingThemeDark: "Night Mode (Dark)",
+    settingThemeLight: "Day Mode (Light / Outdoor)",
+    settingFade: "FADE-OUT DURATION (MS)",
+    btnReset: "Factory Reset",
+    resetConfirm: "Are you sure you want to reset all settings to defaults?",
+    errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs' first."
+  }
+};
 
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [isSongsOpen, setIsSongsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [playingSong, setPlayingSong] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load config on mount
+  // Load config on startup
   useEffect(() => {
     loadConfig();
   }, []);
 
-  // Poll for audio playback status
+  // Poll for audio playback status to auto-unmute Spotify and reset state
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -45,7 +130,7 @@ function App() {
           setPlayingSong(null);
         }
       } catch (err) {
-        console.error("Failed to check if jingle is playing:", err);
+        console.error("Playback status poll failed:", err);
       }
     }, 400);
 
@@ -70,7 +155,11 @@ function App() {
     }
   }
 
-  // Trigger media key play/pause
+  // Language helper
+  const lang = config?.language === "en" ? "en" : "de";
+  const t = TRANSLATIONS[lang];
+
+  // Spotify Control
   async function handleSpotifyToggle() {
     try {
       await invoke("toggle_spotify");
@@ -79,7 +168,7 @@ function App() {
     }
   }
 
-  // Change Spotify volume in mixer
+  // Spotify volume
   async function handleSpotifyVolumeChange(vol: number) {
     if (!config) return;
     try {
@@ -92,7 +181,7 @@ function App() {
     }
   }
 
-  // Toggle Spotify mute
+  // Spotify mute
   async function handleSpotifyMuteToggle() {
     if (!config) return;
     try {
@@ -102,7 +191,7 @@ function App() {
       await invoke("set_spotify_mixer_mute", { mute: newMute });
       await invoke("save_config_cmd", { config: updatedConfig });
     } catch (err) {
-      console.error("Failed to set Spotify mute:", err);
+      console.error("Failed to toggle Spotify mute:", err);
     }
   }
 
@@ -125,19 +214,19 @@ function App() {
     }
   }
 
-  // Trigger Jingle
+  // Trigger Jingle Pad
   async function handleTriggerJingle(categoryId: string) {
     if (!config || config.master_mute) return;
     setErrorMessage(null);
     try {
       setActiveCategory(categoryId);
-      setPlayingSong("Lädt...");
+      setPlayingSong("...");
       const songName = await invoke<string>("play_category_jingle", { categoryId });
       setPlayingSong(songName);
     } catch (err) {
       setActiveCategory(null);
       setPlayingSong(null);
-      setErrorMessage(String(err));
+      setErrorMessage(t.errorNoSongs);
     }
   }
 
@@ -166,11 +255,11 @@ function App() {
       
       await invoke("save_config_cmd", { config: updatedConfig });
     } catch (err) {
-      console.error("Failed to save category volume:", err);
+      console.error("Failed to update category volume:", err);
     }
   }
 
-  // File picker to add song
+  // Add song to category pool
   async function handleAddSong(categoryId: string) {
     if (!config) return;
     try {
@@ -188,7 +277,7 @@ function App() {
     }
   }
 
-  // Remove song
+  // Remove song from category pool
   async function handleRemoveSong(categoryId: string, songPath: string) {
     if (!config) return;
     try {
@@ -201,46 +290,61 @@ function App() {
     }
   }
 
-  // Helper to extract filename from path for clean rendering
+  // Helper to extract clean filename
   function getFileName(path: string): string {
     return path.split(/[/\\]/).pop() || path;
   }
 
+  // Decibel converter for mixers
+  function formatDb(vol: number): string {
+    if (vol <= 0.01) return "-∞ dB";
+    const db = Math.round(20 * Math.log10(vol));
+    return `${db > 0 ? "+" : ""}${db} dB`;
+  }
+
   if (!config) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <p style={{ color: "#84a28f", fontSize: "1.2rem" }}>Lade RFV Leonberg Musik-Steuerung...</p>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", backgroundColor: "#0a0d0c" }}>
+        <p style={{ color: "#84a28f", fontSize: "1.1rem", fontWeight: "bold" }}>EQUISOUND CONSOLE LOADING...</p>
       </div>
     );
   }
 
+  const themeClass = config.theme === "light" ? "light" : "dark";
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${themeClass}`}>
       {/* Header */}
       <header className="app-header">
         <div className="brand">
-          <h1>RFV LEONBERG</h1>
-          <span>Musiksteuerung & Turniersound</span>
+          <h1>{t.title}</h1>
+          <span>{t.subtitle}</span>
         </div>
-        <button className="settings-toggle-btn" onClick={() => setIsSettingsOpen(true)}>
-          ⚙️ Einstellungen & Lieder
-        </button>
+        <div className="header-actions">
+          <button className="btn-control" onClick={() => setIsSongsOpen(true)}>
+            🎵 {t.btnManageSongs}
+          </button>
+          <button className="btn-control" onClick={() => setIsSettingsOpen(true)}>
+            ⚙️ {t.btnSettings}
+          </button>
+        </div>
       </header>
 
-      {/* Error Alert */}
+      {/* Error Bar */}
       {errorMessage && (
         <div style={{
-          background: "rgba(239, 68, 68, 0.15)",
-          border: "1px solid rgba(239, 68, 68, 0.4)",
-          borderRadius: "12px",
-          padding: "1rem",
+          background: "#ef444422",
+          border: "1px solid #ef4444",
+          borderRadius: "8px",
+          padding: "0.75rem",
           color: "#f87171",
-          fontSize: "0.95rem",
+          fontSize: "0.85rem",
           display: "flex",
-          justifyContent: "between",
-          alignItems: "center"
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexShrink: 0
         }}>
-          <span>{errorMessage}</span>
+          <span style={{ fontWeight: "600" }}>{errorMessage}</span>
           <button 
             style={{ background: "transparent", border: "none", color: "#f87171", cursor: "pointer", fontWeight: "bold" }}
             onClick={() => setErrorMessage(null)}
@@ -250,240 +354,286 @@ function App() {
         </div>
       )}
 
-      {/* Top Row: System Controls (Spotify + Master Mute) */}
-      <div className="system-row">
-        {/* Spotify Control */}
-        <div className="panel-card spotify-panel">
-          <div className="spotify-controller">
-            <button 
-              className="spotify-btn" 
-              onClick={handleSpotifyToggle}
-              title="Spotify Start / Stopp (Globale Medientaste)"
-            >
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.893-.982-.336.075-.668-.135-.744-.47-.077-.337.135-.669.47-.745 3.848-.879 7.143-.51 9.82.13.296.18.387.563.207.86zm1.224-2.723c-.226.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.08-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.67-1.114 8.24-.57 11.35 1.346.366.226.486.707.256 1.068zm.105-2.81c-3.26-1.937-8.644-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.151-.5.133-1.026.633-1.178 3.596-1.092 9.539-.882 13.3 1.348.448.266.596.843.33 1.291-.266.449-.842.597-1.29.33-.001 0-.002-.001-.003-.002z"/>
-              </svg>
-            </button>
-            <div className="spotify-info">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="spotify-label">SPOTIFY AUDIO-KANAL</span>
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.85rem", color: "#94a3b8" }}>
+      {/* Main Console Columns */}
+      <div className="app-body">
+        {/* Left Spalte: System & Spotify */}
+        <div className="system-column">
+          <div className="panel-card" style={{ flexGrow: 1 }}>
+            <span className="system-title">{t.spotifyTitle}</span>
+            <div className="spotify-box">
+              <div className="spotify-header">
+                <span className="spotify-title-text">SPOTIFY</span>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}>
                   <input 
                     type="checkbox" 
                     checked={config.spotify_mute} 
                     onChange={handleSpotifyMuteToggle}
                     style={{ cursor: "pointer" }}
                   />
-                  Stumm (Mute)
+                  {t.spotifyMute}
                 </label>
               </div>
-              <div className="spotify-volume-wrapper">
-                <span style={{ fontSize: "1.2rem" }}>🔉</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={config.spotify_volume * 100} 
-                  onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
-                  style={{ flexGrow: 1, accentColor: "#1db954", cursor: "pointer" }}
-                />
-                <span style={{ fontFamily: "monospace", fontSize: "0.9rem", minWidth: "35px", textAlign: "right" }}>
-                  {Math.round(config.spotify_volume * 100)}%
-                </span>
-              </div>
+              
+              <button className="spotify-btn" onClick={handleSpotifyToggle}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.893-.982-.336.075-.668-.135-.744-.47-.077-.337.135-.669.47-.745 3.848-.879 7.143-.51 9.82.13.296.18.387.563.207.86zm1.224-2.723c-.226.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.08-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.67-1.114 8.24-.57 11.35 1.346.366.226.486.707.256 1.068zm.105-2.81c-3.26-1.937-8.644-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.151-.5.133-1.026.633-1.178 3.596-1.092 9.539-.882 13.3 1.348.448.266.596.843.33 1.291-.266.449-.842.597-1.29.33-.001 0-.002-.001-.003-.002z"/>
+                </svg>
+                {t.spotifyToggle}
+              </button>
             </div>
+          </div>
+
+          <div className="panel-card master-controls-box">
+            <span className="system-title">MASTER CONTROLS</span>
+            <button 
+              className={`master-mute-btn ${config.master_mute ? "active" : ""}`}
+              onClick={handleMasterMuteToggle}
+            >
+              {config.master_mute ? t.masterUnmute : t.masterMute}
+            </button>
           </div>
         </div>
 
-        {/* Master Mute */}
-        <div className="panel-card mute-panel">
-          <button 
-            className={`master-mute-btn ${config.master_mute ? "active" : ""}`}
-            onClick={handleMasterMuteToggle}
-          >
-            <span>🔇</span> {config.master_mute ? "TON AKTIVIEREN" : "ALLE SOUNDS AUS (MUTE)"}
-          </button>
-        </div>
-      </div>
+        {/* Center Spalte: Launchpad Grid & Stop Button */}
+        <div className="center-column">
+          <div className="launchpad-grid">
+            {CATEGORIES_INFO.map((cat) => {
+              const categoryData = config.categories[cat.id];
+              const songCount = categoryData?.songs.length || 0;
+              const isPlaying = activeCategory === cat.id;
 
-      {/* Main Jingle Grid */}
-      <div className="trigger-grid">
-        {CATEGORIES_INFO.map((cat) => {
-          const categoryData = config.categories[cat.id];
-          const songCount = categoryData?.songs.length || 0;
-          const isPlaying = activeCategory === cat.id;
-
-          return (
-            <div 
-              key={cat.id} 
-              className={`trigger-card ${cat.cssClass} ${isPlaying ? "playing" : ""}`}
-              onClick={() => handleTriggerJingle(cat.id)}
-            >
-              <div className="card-title">
-                {cat.label}
-                <span className="song-count-badge">{songCount} {songCount === 1 ? "Lied" : "Lieder"}</span>
-              </div>
-              <p className="card-description">{cat.desc}</p>
-              
-              {isPlaying && (
-                <div className="playing-status">
-                  <div className="sound-wave">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+              return (
+                <button
+                  key={cat.id}
+                  className={`pad-button ${cat.cssClass} ${isPlaying ? "playing" : ""}`}
+                  onClick={() => handleTriggerJingle(cat.id)}
+                  disabled={config.master_mute}
+                >
+                  <span className="pad-label">{t[cat.labelKey as keyof typeof t]}</span>
+                  <div className="pad-meta">
+                    <span className="pad-status-text">
+                      {isPlaying ? t.jingleActive : t.jingleIdle}
+                    </span>
+                    <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "160px" }}>
+                      {isPlaying && playingSong ? getFileName(playingSong) : `${songCount} ${songCount === 1 ? t.songsCountSingle : t.songsCountPlural}`}
+                    </span>
                   </div>
-                  <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                    Aktiv: {playingSong ? getFileName(playingSong) : "Lädt..."}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="stop-btn-wrapper">
+            <button 
+              className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
+              onClick={handleStopJingle}
+              disabled={!activeCategory}
+            >
+              {t.stopJingle}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Spalte: Mischpult */}
+        <div className="panel-card mixer-panel">
+          <span className="system-title">{t.mixerTitle}</span>
+          
+          <div className="mixer-board">
+            {/* Spotify Channel */}
+            <div className="mixer-channel spotify">
+              <span className="channel-db">{formatDb(config.spotify_volume)}</span>
+              <div className="fader-strip">
+                <div className="fader-scale">
+                  <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
+                </div>
+                <input 
+                  type="range"
+                  className="vertical-slider"
+                  min="0"
+                  max="100"
+                  value={config.spotify_volume * 100}
+                  onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
+                />
+              </div>
+              <span className="channel-label">{t.spotifyLabel}</span>
+              <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
+                {Math.round(config.spotify_volume * 100)}%
+              </span>
+            </div>
+
+            {/* 4 Jingle Channels */}
+            {CATEGORIES_INFO.map((cat) => {
+              const categoryData = config.categories[cat.id];
+              const vol = categoryData?.volume || 0.8;
+
+              return (
+                <div key={cat.id} className={`mixer-channel ${cat.cssClass}`}>
+                  <span className="channel-db">{formatDb(vol)}</span>
+                  <div className="fader-strip">
+                    <div className="fader-scale">
+                      <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
+                    </div>
+                    <input 
+                      type="range"
+                      className="vertical-slider"
+                      min="0"
+                      max="100"
+                      value={vol * 100}
+                      onChange={(e) => handleCategoryVolumeChange(cat.id, Number(e.target.value) / 100)}
+                    />
+                  </div>
+                  <span className="channel-label">{t[cat.labelKey as keyof typeof t]}</span>
+                  <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
+                    {Math.round(vol * 100)}%
                   </span>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Stop Jingle Banner */}
-      <div className="stop-banner">
-        <button 
-          className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
-          onClick={handleStopJingle}
-          disabled={!activeCategory}
-        >
-          <span>🛑</span> Jingle Stoppen (Fading)
-        </button>
-      </div>
-
-      {/* Mixer Section */}
-      <section className="mixer-section">
-        <h2>Lautstärke-Mischpult</h2>
-        <div className="mixer-grid">
-          {/* Spotify Channel */}
-          <div className="mixer-channel" style={{ borderTop: "3px solid #1db954" }}>
-            <span style={{ fontSize: "1.1rem" }}>🟢</span>
-            <div className="fader-wrapper">
-              <input 
-                type="range"
-                className="fader-input"
-                min="0"
-                max="100"
-                value={config.spotify_volume * 100}
-                onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
-                style={{ accentColor: "#1db954" }}
-              />
-            </div>
-            <span className="channel-label">Spotify</span>
-            <span className="channel-value">{Math.round(config.spotify_volume * 100)}%</span>
+              );
+            })}
           </div>
-
-          {/* 4 Jingle Channels */}
-          {CATEGORIES_INFO.map((cat) => {
-            const categoryData = config.categories[cat.id];
-            const vol = categoryData?.volume || 0.8;
-            
-            // Channel color borders
-            let accentColor = "#3b82f6";
-            if (cat.id === "fehlerfrei") accentColor = "#10b981";
-            if (cat.id === "einlauf") accentColor = "#f59e0b";
-            if (cat.id === "siegerrunde") accentColor = "#ec4899";
-
-            return (
-              <div key={cat.id} className="mixer-channel" style={{ borderTop: `3px solid ${accentColor}` }}>
-                <span>📁</span>
-                <div className="fader-wrapper">
-                  <input 
-                    type="range"
-                    className="fader-input"
-                    min="0"
-                    max="100"
-                    value={vol * 100}
-                    onChange={(e) => handleCategoryVolumeChange(cat.id, Number(e.target.value) / 100)}
-                    style={{ accentColor }}
-                  />
-                </div>
-                <span className="channel-label">{cat.label}</span>
-                <span className="channel-value">{Math.round(vol * 100)}%</span>
-              </div>
-            );
-          })}
         </div>
-      </section>
+      </div>
 
-      {/* Settings Modal */}
-      {isSettingsOpen && (
-        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      {/* MODAL 1: Lieder-Datenbank */}
+      {isSongsOpen && (
+        <div className="modal-overlay" onClick={() => setIsSongsOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Einstellungen & Lieder-Datenbank</h2>
-              <button className="close-btn" onClick={() => setIsSettingsOpen(false)}>✕</button>
+              <h2>{t.modalSongsTitle}</h2>
+              <button className="btn-close" onClick={() => setIsSongsOpen(false)}>✕</button>
             </div>
             
             <div className="modal-body">
-              <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: "0 0 0.5rem 0" }}>
-                Hier kannst du Musikdateien (.mp3, .wav, etc.) in die einzelnen Kategorien laden. 
-                Wenn eine Kategorie ausgelöst wird, wählt die App zufällig ein Lied aus dem jeweiligen Ordner/Pool.
-              </p>
-
               {CATEGORIES_INFO.map((cat) => {
                 const categoryData = config.categories[cat.id];
                 const songs = categoryData?.songs || [];
 
                 return (
-                  <div key={cat.id} className="settings-category-box">
-                    <div className="settings-category-header">
-                      <span className={`settings-category-title ${cat.cssClass}-title`}>
-                        {cat.label}
-                      </span>
-                      <button className="add-song-btn" onClick={() => handleAddSong(cat.id)}>
-                        ➕ Lied hinzufügen
+                  <div key={cat.id} className="category-song-box">
+                    <div className="category-song-header">
+                      <span className="category-song-title">{t[cat.labelKey as keyof typeof t]}</span>
+                      <button className="btn-control" style={{ fontSize: "0.75rem", padding: "3px 8px" }} onClick={() => handleAddSong(cat.id)}>
+                        {t.addSong}
                       </button>
                     </div>
 
-                    <ul className="settings-song-list">
-                      {songs.length === 0 ? (
-                        <li className="no-songs-label">Keine Lieder hinzugefügt</li>
-                      ) : (
-                        songs.map((song) => (
-                          <li key={song} className="settings-song-item">
-                            <span className="settings-song-name" title={song}>
-                              {getFileName(song)}
-                            </span>
-                            <button 
-                              className="remove-song-btn" 
-                              onClick={() => handleRemoveSong(cat.id, song)}
-                              title="Aus Liste entfernen"
-                            >
-                              ❌
-                            </button>
-                          </li>
-                        ))
-                      )}
-                    </ul>
+                    <div className="song-list-wrapper">
+                      <ul className="song-list">
+                        {songs.length === 0 ? (
+                          <li className="no-songs">{t.noSongs}</li>
+                        ) : (
+                          songs.map((song) => (
+                            <li key={song} className="song-item">
+                              <span className="song-name" title={song}>{getFileName(song)}</span>
+                              <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </div>
                   </div>
                 );
               })}
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={async () => {
-                if (window.confirm("Möchtest du wirklich alle Einstellungen auf Werkseinstellungen zurücksetzen? Deine Liederlisten werden geleert.")) {
-                  const defaultCfg = {
-                    spotify_volume: 0.5,
-                    spotify_mute: false,
-                    master_mute: false,
-                    categories: {
-                      pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
-                      fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
-                      einlauf: { id: "einlauf", name: "Siegerehrung Einlauf", volume: 0.8, songs: [] },
-                      siegerrunde: { id: "siegerrunde", name: "Siegerrunde", volume: 0.8, songs: [] }
-                    }
-                  };
-                  await saveConfig(defaultCfg);
-                }
-              }}>
-                Zurücksetzen
+              <button className="btn-control" style={{ background: "var(--accent-brand)", color: "#000000" }} onClick={() => setIsSongsOpen(false)}>
+                {t.close}
               </button>
-              <button className="btn-primary" onClick={() => setIsSettingsOpen(false)}>
-                Schließen & Speichern
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: System-Einstellungen */}
+      {isSettingsOpen && (
+        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t.modalSettingsTitle}</h2>
+              <button className="btn-close" onClick={() => setIsSettingsOpen(false)}>✕</button>
+            </div>
+
+            <div className="modal-body">
+              {/* Language Selector */}
+              <div className="setting-item">
+                <label>{t.settingLanguage}</label>
+                <select 
+                  className="select-control"
+                  value={config.language}
+                  onChange={(e) => {
+                    const updated = { ...config, language: e.target.value };
+                    saveConfig(updated);
+                  }}
+                >
+                  <option value="de">Deutsch</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+
+              {/* Theme Selector */}
+              <div className="setting-item">
+                <label>{t.settingTheme}</label>
+                <select 
+                  className="select-control"
+                  value={config.theme}
+                  onChange={(e) => {
+                    const updated = { ...config, theme: e.target.value };
+                    saveConfig(updated);
+                  }}
+                >
+                  <option value="dark">{t.settingThemeDark}</option>
+                  <option value="light">{t.settingThemeLight}</option>
+                </select>
+              </div>
+
+              {/* Fade out Slider */}
+              <div className="setting-item">
+                <label>{t.settingFade}: {config.fade_duration_ms}ms</label>
+                <input 
+                  type="range"
+                  min="200"
+                  max="4000"
+                  step="100"
+                  value={config.fade_duration_ms}
+                  onChange={(e) => {
+                    const updated = { ...config, fade_duration_ms: Number(e.target.value) };
+                    setConfig(updated);
+                  }}
+                  onMouseUp={() => saveConfig(config)}
+                  style={{ accentColor: "var(--accent-brand)", cursor: "pointer" }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ justifyContent: "space-between" }}>
+              <button 
+                className="btn-control" 
+                style={{ color: "#ef4444", borderColor: "#ef4444" }} 
+                onClick={async () => {
+                  if (window.confirm(t.resetConfirm)) {
+                    const defaultCfg = {
+                      spotify_volume: 0.5,
+                      spotify_mute: false,
+                      master_mute: false,
+                      theme: "dark",
+                      language: "de",
+                      fade_duration_ms: 1200,
+                      categories: {
+                        pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
+                        fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
+                        einlauf: { id: "einlauf", name: "Siegerehrung Einlauf", volume: 0.8, songs: [] },
+                        siegerrunde: { id: "siegerrunde", name: "Siegerrunde", volume: 0.8, songs: [] }
+                      }
+                    };
+                    await saveConfig(defaultCfg);
+                    setIsSettingsOpen(false);
+                  }
+                }}
+              >
+                {t.btnReset}
+              </button>
+              <button className="btn-control" style={{ background: "var(--accent-brand)", color: "#000000" }} onClick={() => setIsSettingsOpen(false)}>
+                {t.close}
               </button>
             </div>
           </div>

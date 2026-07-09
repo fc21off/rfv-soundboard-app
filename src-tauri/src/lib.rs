@@ -127,15 +127,15 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
 
 #[tauri::command]
 fn stop_current_jingle(state: State<'_, AppState>) {
-    // Fade out over 1.2 seconds
-    state.player.stop_fade(Duration::from_millis(1200));
+    let config = state.config.lock().unwrap();
+    state.player.stop_fade(Duration::from_millis(config.fade_duration_ms as u64));
     
     // Unmute Spotify in mixer
-    let config = state.config.lock().unwrap();
     if !config.spotify_mute && !config.master_mute {
         let _ = windows_audio::mute_spotify(false);
     }
 }
+
 
 #[tauri::command]
 fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {

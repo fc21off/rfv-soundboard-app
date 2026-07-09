@@ -18,6 +18,9 @@ pub struct AppConfig {
     pub spotify_volume: f32,
     pub spotify_mute: bool,
     pub master_mute: bool,
+    pub theme: String,
+    pub language: String,
+    pub fade_duration_ms: u32,
     pub categories: HashMap<String, JingleCategory>,
 }
 
@@ -69,10 +72,14 @@ impl Default for AppConfig {
             spotify_volume: 0.5,
             spotify_mute: false,
             master_mute: false,
+            theme: "dark".to_string(),
+            language: "de".to_string(),
+            fade_duration_ms: 1200,
             categories,
         }
     }
 }
+
 
 // Get path to config file in Tauri App Data Directory
 pub fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
