@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
@@ -107,6 +107,87 @@ const TRANSLATIONS = {
     resetConfirm: "Are you sure you want to reset all settings to defaults?",
     errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs' first."
   }
+};
+
+interface FaderProps {
+  value: number; // 0.0 to 1.0
+  onChange: (value: number) => void;
+  trackColorClass: string;
+}
+
+const Fader: React.FC<FaderProps> = ({ value, onChange, trackColorClass }) => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const calculateVolume = (clientY: number) => {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const percentage = 1 - (clientY - rect.top) / rect.height;
+    const volume = Math.max(0, Math.min(100, Math.round(percentage * 100))) / 100;
+    onChange(volume);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    calculateVolume(e.clientY);
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current) return;
+      calculateVolume(moveEvent.clientY);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    isDragging.current = true;
+    calculateVolume(e.touches[0].clientY);
+    
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (!isDragging.current) return;
+      moveEvent.preventDefault(); // Prevent page scroll while dragging
+      calculateVolume(moveEvent.touches[0].clientY);
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.current = false;
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", handleTouchEnd);
+  };
+
+  const percentage = value * 100;
+
+  return (
+    <div 
+      className={`custom-fader-track ${trackColorClass}`}
+      ref={trackRef}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      style={{ cursor: "ns-resize" }}
+    >
+      <div className="custom-fader-groove">
+        <div 
+          className="custom-fader-fill"
+          style={{ height: `${percentage}%` }}
+        />
+      </div>
+      <div 
+        className="custom-fader-thumb"
+        style={{ bottom: `calc(${percentage}% - 8px)` }}
+      />
+    </div>
+  );
 };
 
 function App() {
@@ -544,13 +625,10 @@ function App() {
                   <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                 </div>
                 <div className="slider-groove-container">
-                  <input 
-                    type="range"
-                    className="vertical-slider"
-                    min="0"
-                    max="100"
-                    value={config.spotify_volume * 100}
-                    onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
+                  <Fader 
+                    value={config.spotify_volume}
+                    onChange={handleSpotifyVolumeChange}
+                    trackColorClass="spotify"
                   />
                 </div>
               </div>
@@ -573,13 +651,10 @@ function App() {
                       <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                     </div>
                     <div className="slider-groove-container">
-                      <input 
-                        type="range"
-                        className="vertical-slider"
-                        min="0"
-                        max="100"
-                        value={vol * 100}
-                        onChange={(e) => handleCategoryVolumeChange(cat.id, Number(e.target.value) / 100)}
+                      <Fader 
+                        value={vol}
+                        onChange={(volume) => handleCategoryVolumeChange(cat.id, volume)}
+                        trackColorClass={cat.cssClass}
                       />
                     </div>
                   </div>
