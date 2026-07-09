@@ -126,18 +126,37 @@ function App() {
   // Prevent browser focus auto-scrolling when clicking/dragging inputs (vertical sliders)
   useEffect(() => {
     const preventFocusScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target && target.scrollTop !== 0) {
-        target.scrollTop = 0;
+      // Force window to stay at (0, 0)
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
       }
-      if (target && target.scrollLeft !== 0) {
-        target.scrollLeft = 0;
+      
+      // Reset scroll for the event target (if it scrolled)
+      const target = e.target as HTMLElement;
+      if (target) {
+        try {
+          if (target.scrollTop !== undefined && target.scrollTop !== 0) {
+            target.scrollTop = 0;
+          }
+          if (target.scrollLeft !== undefined && target.scrollLeft !== 0) {
+            target.scrollLeft = 0;
+          }
+        } catch (_) {}
+      }
+
+      // Explicitly lock document element and body scrolls
+      if (document.documentElement.scrollTop !== 0) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body.scrollTop !== 0) {
+        document.body.scrollTop = 0;
       }
     };
 
     window.addEventListener("scroll", preventFocusScroll, true);
     return () => window.removeEventListener("scroll", preventFocusScroll, true);
   }, []);
+
 
 
   // Poll for audio playback status to auto-unmute Spotify and reset state

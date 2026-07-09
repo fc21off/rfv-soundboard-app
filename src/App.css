@@ -618,9 +618,11 @@ body {
   align-items: stretch;
   justify-content: center;
   min-height: 80px;
+  max-height: 240px; /* Crucial: bounds the height to prevent WebView2 focus scroll layout offset */
   margin: 0.5rem 0;
   box-sizing: border-box;
 }
+
 
 
 /* Fader scale display */
