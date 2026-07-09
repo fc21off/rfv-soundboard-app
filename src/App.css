@@ -482,9 +482,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80px;
-  max-height: 160px; /* Hard lock to prevent layout overflow */
+  min-height: 120px;
+  margin: 0.5rem 0;
 }
+
 
 /* Fader scale display */
 .fader-scale {
