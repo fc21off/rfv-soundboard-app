@@ -641,7 +641,7 @@ function App() {
             {/* 4 Jingle Channels */}
             {CATEGORIES_INFO.map((cat) => {
               const categoryData = config.categories[cat.id];
-              const vol = categoryData?.volume || 0.8;
+              const vol = categoryData?.volume ?? 0.8;
 
               return (
                 <div key={cat.id} className={`mixer-channel ${cat.cssClass}`}>
