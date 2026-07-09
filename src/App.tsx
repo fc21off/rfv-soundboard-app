@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import rfvLogo from "./assets/rfv_logo.jpg";
 import "./App.css";
 
 interface JingleCategory {
@@ -198,11 +200,57 @@ function App() {
   const [playingSong, setPlayingSong] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [spotifyPlaying, setSpotifyPlaying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load config on startup
   useEffect(() => {
     loadConfig();
   }, []);
+
+  // Fullscreen keyboard listener (F11) and state check on mount
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.key === "F11") {
+        e.preventDefault();
+        try {
+          const appWindow = getCurrentWindow();
+          const current = await appWindow.isFullscreen();
+          const nextState = !current;
+          await appWindow.setFullscreen(nextState);
+          setIsFullscreen(nextState);
+        } catch (err) {
+          console.error("Fullscreen keyboard toggle failed:", err);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Initial check
+    const checkFullscreen = async () => {
+      try {
+        const appWindow = getCurrentWindow();
+        const current = await appWindow.isFullscreen();
+        setIsFullscreen(current);
+      } catch (_) {}
+    };
+    checkFullscreen();
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fullscreen toggle action for button
+  async function toggleFullscreen() {
+    try {
+      const appWindow = getCurrentWindow();
+      const current = await appWindow.isFullscreen();
+      const nextState = !current;
+      await appWindow.setFullscreen(nextState);
+      setIsFullscreen(nextState);
+    } catch (err) {
+      console.error("Failed to toggle fullscreen:", err);
+    }
+  }
 
   // Prevent browser focus auto-scrolling when clicking/dragging inputs (vertical sliders)
   useEffect(() => {
@@ -481,6 +529,23 @@ function App() {
           <h1>{t.title}</h1>
           <span>{t.subtitle}</span>
         </div>
+        <div className="header-actions">
+          <button 
+            className="fullscreen-toggle-btn" 
+            onClick={toggleFullscreen} 
+            title="Fullscreen (F11)"
+          >
+            {isFullscreen ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+              </svg>
+            )}
+          </button>
+        </div>
       </header>
 
       {/* Main Console Columns */}
@@ -543,6 +608,13 @@ function App() {
             <button className="btn-control admin-btn" onClick={() => setIsSettingsOpen(true)}>
               ⚙️ {t.btnSettings}
             </button>
+          </div>
+
+          {/* RFV Leonberg Logo Panel */}
+          <div className="panel-card logo-card">
+            <div className="logo-container">
+              <img src={rfvLogo} alt="RFV Leonberg Logo" className="rfv-logo-img" />
+            </div>
           </div>
         </div>
 
