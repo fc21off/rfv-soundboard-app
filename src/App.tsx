@@ -29,7 +29,8 @@ const CATEGORIES_INFO = [
 const TRANSLATIONS = {
   de: {
     title: "EQUISOUND",
-    subtitle: "EQUITATION CONSOLE BY RFV LEONBERG",
+    subtitle: "OFFIZIELLES SOUNDBOARD DES RFV LEONBERG",
+
     btnManageSongs: "Lieder verwalten",
     btnSettings: "System-Einstellungen",
     spotifyTitle: "SPOTIFY AUDIO-SEKTION",
@@ -68,7 +69,8 @@ const TRANSLATIONS = {
   },
   en: {
     title: "EQUISOUND",
-    subtitle: "EQUITATION CONSOLE BY RFV LEONBERG",
+    subtitle: "TOURNAMENT SOUND CONSOLE BY RFV LEONBERG",
+
     btnManageSongs: "Manage Songs",
     btnSettings: "System Settings",
     spotifyTitle: "SPOTIFY AUDIO SECTION",
