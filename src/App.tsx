@@ -486,7 +486,7 @@ function App() {
                   <div className="pad-center-content">
                     {isPlaying ? (
                       <div className="active-visual">
-                        <div className="waveform-animation">
+                        <div className="waveform-animation playing">
                           <span className="bar bar1"></span>
                           <span className="bar bar2"></span>
                           <span className="bar bar3"></span>
@@ -501,12 +501,19 @@ function App() {
                       </div>
                     ) : (
                       <div className="idle-visual">
-                        <svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
+                        <div className="waveform-animation idle">
+                          <span className="bar bar1" style={{ height: "12px" }}></span>
+                          <span className="bar bar2" style={{ height: "20px" }}></span>
+                          <span className="bar bar3" style={{ height: "32px" }}></span>
+                          <span className="bar bar4" style={{ height: "24px" }}></span>
+                          <span className="bar bar5" style={{ height: "14px" }}></span>
+                          <span className="bar bar6" style={{ height: "28px" }}></span>
+                          <span className="bar bar7" style={{ height: "16px" }}></span>
+                        </div>
                       </div>
                     )}
                   </div>
+
 
                   <div className="pad-meta">
                     <span className="pad-status-text">

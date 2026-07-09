@@ -377,13 +377,13 @@ body {
 }
 
 .idle-visual {
-  opacity: 0.04;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  color: var(--text-main);
+  opacity: 0.12; /* More visible standby icon */
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  color: var(--text-muted);
 }
 
 .pad-button:hover .idle-visual {
-  opacity: 0.15;
+  opacity: 0.45; /* Glows brightly on hover! */
   transform: scale(1.05);
 }
 
@@ -408,32 +408,48 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Audio Waveform CSS Animation */
+/* Audio Waveform layout */
 .waveform-animation {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   height: 32px;
 }
 
 .waveform-animation .bar {
   display: inline-block;
-  width: 4px;
-  height: 6px;
+  width: 5px; /* Thicker professional look */
   border-radius: 2px;
+}
+
+/* Idle state styling: static soundwave graphic colorized to match category borders */
+.waveform-animation.idle .bar {
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+}
+
+.pad-button.pruefung .waveform-animation.idle .bar { background-color: #3b82f6; }
+.pad-button.fehlerfrei .waveform-animation.idle .bar { background-color: #16a34a; }
+.pad-button.einlauf .waveform-animation.idle .bar { background-color: #d97706; }
+.pad-button.siegerrunde .waveform-animation.idle .bar { background-color: #c026d3; }
+
+/* Playing state styling: bright white bars with dynamic equaliser bounce animation */
+.waveform-animation.playing .bar {
   background-color: #ffffff;
+  height: 6px;
   animation: wave 1.2s ease-in-out infinite alternate;
 }
 
 /* Off-set animations for realistic equalizer feel */
-.waveform-animation .bar1 { animation-delay: 0.1s; }
-.waveform-animation .bar2 { animation-delay: 0.4s; }
-.waveform-animation .bar3 { animation-delay: 0.2s; }
-.waveform-animation .bar4 { animation-delay: 0.6s; }
-.waveform-animation .bar5 { animation-delay: 0.3s; }
-.waveform-animation .bar6 { animation-delay: 0.5s; }
-.waveform-animation .bar7 { animation-delay: 0.15s; }
+.waveform-animation.playing .bar1 { animation-delay: 0.1s; }
+.waveform-animation.playing .bar2 { animation-delay: 0.4s; }
+.waveform-animation.playing .bar3 { animation-delay: 0.2s; }
+.waveform-animation.playing .bar4 { animation-delay: 0.6s; }
+.waveform-animation.playing .bar5 { animation-delay: 0.3s; }
+.waveform-animation.playing .bar6 { animation-delay: 0.5s; }
+.waveform-animation.playing .bar7 { animation-delay: 0.15s; }
+
 
 @keyframes wave {
   0% { height: 6px; }
@@ -572,14 +588,16 @@ body {
   background-color: var(--bg-mixer-channel);
   border: 1px solid var(--border-panel);
   border-radius: 8px;
-  padding: 0.4rem 1px;
+  padding: 0.8rem 1px; /* More vertical breathing room */
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between; /* Spreads top label, fader, and bottom labels perfectly */
   height: 100%;
   box-sizing: border-box;
   min-width: 0; /* Crucial: forces equal column spacing and text ellipsis in CSS grid */
 }
+
 
 .mixer-channel.spotify { border-top: 3px solid #1db954; }
 .mixer-channel.pruefung { border-top: 3px solid #3b82f6; }
