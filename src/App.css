@@ -588,14 +588,14 @@ body {
   background-color: var(--bg-mixer-channel);
   border: 1px solid var(--border-panel);
   border-radius: 8px;
-  padding: 0.8rem 1px; /* More vertical breathing room */
+  padding: 0.5rem 1px; /* Tight vertical padding for maximum track height */
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between; /* Spreads top label, fader, and bottom labels perfectly */
   height: 100%;
   box-sizing: border-box;
   min-width: 0; /* Crucial: forces equal column spacing and text ellipsis in CSS grid */
+  overflow: hidden; /* Completely lock overflow and prevent focus scrolling */
 }
 
 
@@ -636,10 +636,11 @@ body {
   align-items: stretch;
   justify-content: center;
   min-height: 80px;
-  max-height: 240px; /* Crucial: bounds the height to prevent WebView2 focus scroll layout offset */
-  margin: 0.5rem 0;
+  margin: 0.25rem 0; /* Tiny vertical margins */
   box-sizing: border-box;
 }
+
+
 
 
 
@@ -677,7 +678,7 @@ body {
   -webkit-appearance: none;
   appearance: none;
   width: 8px; /* Wider professional groove */
-  height: 90%;
+  height: 100%;
   background: var(--bg-fader-track);
   border-radius: 4px;
   outline: none;
