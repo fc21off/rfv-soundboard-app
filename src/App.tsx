@@ -220,6 +220,7 @@ function App() {
           setIsFullscreen(nextState);
         } catch (err) {
           console.error("Fullscreen keyboard toggle failed:", err);
+          setErrorMessage("F11 Fullscreen Error: " + String(err));
         }
       }
     };
@@ -249,6 +250,7 @@ function App() {
       setIsFullscreen(nextState);
     } catch (err) {
       console.error("Failed to toggle fullscreen:", err);
+      setErrorMessage("Fullscreen Toggle Error: " + String(err));
     }
   }
 
