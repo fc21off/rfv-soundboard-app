@@ -68,6 +68,9 @@ fn set_spotify_mixer_mute(mute: bool) -> Result<(), String> {
 
 #[tauri::command]
 fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id: String) -> Result<String, String> {
+    // Stop any running sound immediately since we are transitioning to a new state
+    state.player.stop_immediate();
+
     let config = state.config.lock().unwrap().clone();
     
     let category = config.categories.get(&category_id)
