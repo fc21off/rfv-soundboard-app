@@ -123,6 +123,23 @@ function App() {
     loadConfig();
   }, []);
 
+  // Prevent browser focus auto-scrolling when clicking/dragging inputs (vertical sliders)
+  useEffect(() => {
+    const preventFocusScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target && target.scrollTop !== 0) {
+        target.scrollTop = 0;
+      }
+      if (target && target.scrollLeft !== 0) {
+        target.scrollLeft = 0;
+      }
+    };
+
+    window.addEventListener("scroll", preventFocusScroll, true);
+    return () => window.removeEventListener("scroll", preventFocusScroll, true);
+  }, []);
+
+
   // Poll for audio playback status to auto-unmute Spotify and reset state
   useEffect(() => {
     const interval = setInterval(async () => {
