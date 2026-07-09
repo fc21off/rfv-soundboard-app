@@ -445,15 +445,43 @@ function App() {
                   disabled={config.master_mute}
                 >
                   <span className="pad-label">{t[cat.labelKey as keyof typeof t]}</span>
+
+                  {/* Centered Visual Element */}
+                  <div className="pad-center-content">
+                    {isPlaying ? (
+                      <div className="active-visual">
+                        <div className="waveform-animation">
+                          <span className="bar bar1"></span>
+                          <span className="bar bar2"></span>
+                          <span className="bar bar3"></span>
+                          <span className="bar bar4"></span>
+                          <span className="bar bar5"></span>
+                          <span className="bar bar6"></span>
+                          <span className="bar bar7"></span>
+                        </div>
+                        <div className="active-song-name">
+                          {playingSong ? getFileName(playingSong) : "..."}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="idle-visual">
+                        <svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="pad-meta">
                     <span className="pad-status-text">
                       {isPlaying ? t.jingleActive : t.jingleIdle}
                     </span>
-                    <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "160px" }}>
-                      {isPlaying && playingSong ? getFileName(playingSong) : `${songCount} ${songCount === 1 ? t.songsCountSingle : t.songsCountPlural}`}
+                    <span>
+                      {songCount} {songCount === 1 ? t.songsCountSingle : t.songsCountPlural}
                     </span>
                   </div>
                 </button>
+
               );
             })}
           </div>

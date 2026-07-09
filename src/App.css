@@ -364,6 +364,88 @@ body {
   gap: 1px;
 }
 
+/* Centered content inside launchpad buttons */
+.pad-center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  width: 100%;
+  margin: 0.5rem 0;
+  min-height: 0;
+}
+
+.idle-visual {
+  opacity: 0.04;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  color: var(--text-main);
+}
+
+.pad-button:hover .idle-visual {
+  opacity: 0.15;
+  transform: scale(1.05);
+}
+
+.active-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  animation: fadeIn 0.3s ease;
+}
+
+.active-song-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Audio Waveform CSS Animation */
+.waveform-animation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 32px;
+}
+
+.waveform-animation .bar {
+  display: inline-block;
+  width: 4px;
+  height: 6px;
+  border-radius: 2px;
+  background-color: #ffffff;
+  animation: wave 1.2s ease-in-out infinite alternate;
+}
+
+/* Off-set animations for realistic equalizer feel */
+.waveform-animation .bar1 { animation-delay: 0.1s; }
+.waveform-animation .bar2 { animation-delay: 0.4s; }
+.waveform-animation .bar3 { animation-delay: 0.2s; }
+.waveform-animation .bar4 { animation-delay: 0.6s; }
+.waveform-animation .bar5 { animation-delay: 0.3s; }
+.waveform-animation .bar6 { animation-delay: 0.5s; }
+.waveform-animation .bar7 { animation-delay: 0.15s; }
+
+@keyframes wave {
+  0% { height: 6px; }
+  100% { height: 32px; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
 .pad-status-text {
   font-size: 0.8rem;
   font-weight: 700;
