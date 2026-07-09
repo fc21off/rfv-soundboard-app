@@ -397,7 +397,7 @@ function App() {
           </div>
 
           {/* Master Controls Panel */}
-          <div className="panel-card master-card">
+          <div className="panel-card master-card" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             <span className="system-title">MASTER CONTROLS</span>
             <button 
               className={`master-mute-btn ${config.master_mute ? "active" : ""}`}
@@ -405,7 +405,15 @@ function App() {
             >
               {config.master_mute ? t.masterUnmute : t.masterMute}
             </button>
+            <button 
+              className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
+              onClick={handleStopJingle}
+              disabled={!activeCategory}
+            >
+              STOP ACTIVE JINGLE
+            </button>
           </div>
+
 
           {/* Administration Panel */}
           <div className="panel-card admin-card">
@@ -448,15 +456,6 @@ function App() {
             })}
           </div>
 
-          <div className="stop-btn-wrapper">
-            <button 
-              className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
-              onClick={handleStopJingle}
-              disabled={!activeCategory}
-            >
-              {t.stopJingle}
-            </button>
-          </div>
         </div>
 
         {/* Right Spalte: Mischpult */}
@@ -471,14 +470,16 @@ function App() {
                 <div className="fader-scale">
                   <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                 </div>
-                <input 
-                  type="range"
-                  className="vertical-slider"
-                  min="0"
-                  max="100"
-                  value={config.spotify_volume * 100}
-                  onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
-                />
+                <div className="slider-groove-container">
+                  <input 
+                    type="range"
+                    className="vertical-slider"
+                    min="0"
+                    max="100"
+                    value={config.spotify_volume * 100}
+                    onChange={(e) => handleSpotifyVolumeChange(Number(e.target.value) / 100)}
+                  />
+                </div>
               </div>
               <span className="channel-label">{t.spotifyLabel}</span>
               <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
@@ -498,14 +499,16 @@ function App() {
                     <div className="fader-scale">
                       <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
                     </div>
-                    <input 
-                      type="range"
-                      className="vertical-slider"
-                      min="0"
-                      max="100"
-                      value={vol * 100}
-                      onChange={(e) => handleCategoryVolumeChange(cat.id, Number(e.target.value) / 100)}
-                    />
+                    <div className="slider-groove-container">
+                      <input 
+                        type="range"
+                        className="vertical-slider"
+                        min="0"
+                        max="100"
+                        value={vol * 100}
+                        onChange={(e) => handleCategoryVolumeChange(cat.id, Number(e.target.value) / 100)}
+                      />
+                    </div>
                   </div>
                   <span className="channel-label">{t[cat.labelKey as keyof typeof t]}</span>
                   <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
@@ -514,6 +517,7 @@ function App() {
                 </div>
               );
             })}
+
 
           </div>
         </div>

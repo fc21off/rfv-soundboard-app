@@ -520,24 +520,19 @@ body {
 
 /* Fader Strip Area */
 .fader-strip {
-
   flex-grow: 1;
-  position: relative;
   width: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: row; /* Side-by-side scale and slider */
+  align-items: stretch;
   justify-content: center;
   min-height: 120px;
   margin: 0.5rem 0;
+  box-sizing: border-box;
 }
-
 
 /* Fader scale display */
 .fader-scale {
-  position: absolute;
-  left: 4px;
-  top: 8px;
-  bottom: 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -546,7 +541,24 @@ body {
   font-family: monospace;
   font-weight: 600;
   pointer-events: none;
+  width: 24px;
+  text-align: right;
+  padding-right: 6px;
+  box-sizing: border-box;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
+
+/* Slider groove wrapper to isolate the fader from text */
+.slider-groove-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 0;
+}
+
 
 /* Native input slider (vertical) */
 .vertical-slider {
