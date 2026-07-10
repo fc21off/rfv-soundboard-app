@@ -75,7 +75,7 @@ impl Default for AppConfig {
             "tusch".to_string(),
             JingleCategory {
                 id: "tusch".to_string(),
-                name: "Soundeffekt / Tusch".to_string(),
+                name: "Siegertusch".to_string(),
                 volume: 0.8,
                 songs: Vec::new(),
             },

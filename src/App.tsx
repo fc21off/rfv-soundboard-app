@@ -54,8 +54,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Einlauf zur Siegerehrung",
     siegerrunde: "Siegerrunde",
     siegerrundeDesc: "Ehrenrunde des Siegers",
-    tusch: "Sieger-Tusch / Fanfare",
-    tuschDesc: "Tusch oder Sieger-Fanfare",
+    tusch: "Siegertusch",
+    tuschDesc: "Tusch für die Siegerehrung",
     jingleActive: "JINGLE AKTIV",
     jingleIdle: "BEREIT",
     songsCountSingle: "Lied geladen",
@@ -79,8 +79,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Verfügbare Songs (Klicke ➕ zum Hinzufügen)",
     queueEmpty: "Die Warteschlange ist leer. Klicke rechts auf das ➕ Symbol, um Songs hinzuzufügen.",
     clearQueue: "Warteschlange leeren",
-    loopActive: "Dauerschleife: Aktiv",
-    loopInactive: "Dauerschleife: Inaktiv",
+    loopActive: "JINGLE-LOOP: AKTIV",
+    loopInactive: "JINGLE-LOOP: INAKTIV",
   },
   en: {
     title: "EQUISOUND",
@@ -104,8 +104,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Award Ceremony Entrance",
     siegerrunde: "Victory Lap",
     siegerrundeDesc: "Winner's Victory Lap",
-    tusch: "Victory Fanfare / Fanfare",
-    tuschDesc: "Victory Fanfare or Sound Effect",
+    tusch: "Victory Fanfare",
+    tuschDesc: "Fanfare for the award ceremony",
     jingleActive: "JINGLE PLAYING",
     jingleIdle: "STANDBY",
     songsCountSingle: "song loaded",
@@ -129,8 +129,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Available Songs (Click ➕ to Add)",
     queueEmpty: "The queue is empty. Click the ➕ symbol on the right to add songs.",
     clearQueue: "Clear Queue",
-    loopActive: "Loop: Active",
-    loopInactive: "Loop: Inactive",
+    loopActive: "JINGLE LOOP: ACTIVE",
+    loopInactive: "JINGLE LOOP: INACTIVE",
   }
 };
 
@@ -1105,7 +1105,7 @@ function App() {
                         fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
                         einlauf: { id: "einlauf", name: "Siegerehrung Einlauf", volume: 0.8, songs: [] },
                         siegerrunde: { id: "siegerrunde", name: "Siegerrunde", volume: 0.8, songs: [] },
-                        tusch: { id: "tusch", name: "Soundeffekt / Tusch", volume: 0.8, songs: [] }
+                        tusch: { id: "tusch", name: "Siegertusch", volume: 0.8, songs: [] }
                       }
                     };
                     await saveConfig(defaultCfg);
