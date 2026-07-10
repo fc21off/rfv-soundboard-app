@@ -14,6 +14,7 @@ pub struct JingleCategory {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct AppConfig {
     pub spotify_volume: f32,
     pub spotify_mute: bool,
@@ -130,7 +131,23 @@ pub fn load_config(app: &tauri::AppHandle) -> AppConfig {
         return AppConfig::default();
     }
 
-    serde_json::from_str(&contents).unwrap_or_else(|_| AppConfig::default())
+    let mut config: AppConfig = serde_json::from_str(&contents).unwrap_or_else(|_| AppConfig::default());
+    
+    // Migration: ensure all default categories exist
+    let default_config = AppConfig::default();
+    let mut modified = false;
+    for (id, cat) in default_config.categories {
+        if !config.categories.contains_key(&id) {
+            config.categories.insert(id, cat);
+            modified = true;
+        }
+    }
+    
+    if modified {
+        let _ = save_config(app, &config);
+    }
+
+    config
 }
 
 // Save config to file

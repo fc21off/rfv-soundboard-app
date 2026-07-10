@@ -1200,8 +1200,7 @@ body {
 }
 
 .tusch-card {
-  flex-grow: 1; /* Automatically stretches to fill remaining space in the sidebar */
-  justify-content: space-between;
+  /* collapsed to natural height */
 }
 
 .app-container.light .tusch-pad-btn:hover {

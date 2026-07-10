@@ -426,6 +426,10 @@ function App() {
       if (selectedPaths && selectedPaths.length > 0) {
         const updatedConfig = { ...config };
         const category = updatedConfig.categories[categoryId];
+        if (!category) {
+          console.error(`Category ${categoryId} not found in config`);
+          return;
+        }
         let changed = false;
 
         for (const path of selectedPaths) {
@@ -450,6 +454,7 @@ function App() {
     try {
       const updatedConfig = { ...config };
       const category = updatedConfig.categories[categoryId];
+      if (!category) return;
       category.songs = category.songs.filter((s) => s !== songPath);
       await saveConfig(updatedConfig);
     } catch (err) {
