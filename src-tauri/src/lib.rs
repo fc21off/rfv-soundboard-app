@@ -160,28 +160,40 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
 
 
 #[tauri::command]
-fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>) {
+fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bool) {
     let config = state.config.lock().unwrap().clone();
-    state.player.stop_fade(Duration::from_millis(config.fade_duration_ms as u64));
     
-    // Unmute Spotify in mixer
-    if !config.spotify_mute && !config.master_mute {
-        let target_vol = config.spotify_volume;
-        let jingle_fade_duration = Duration::from_millis(config.fade_duration_ms as u64);
-        let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
+    if immediate {
+        state.player.stop_immediate();
         
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            // Wait for jingle to fade out first
-            std::thread::sleep(jingle_fade_duration);
+        // Unmute Spotify in mixer immediately
+        if !config.spotify_mute && !config.master_mute {
+            let target_vol = config.spotify_volume;
+            let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
+            let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration);
+        }
+    } else {
+        state.player.stop_fade(Duration::from_millis(config.fade_duration_ms as u64));
+        
+        // Unmute Spotify in mixer after fade duration
+        if !config.spotify_mute && !config.master_mute {
+            let target_vol = config.spotify_volume;
+            let jingle_fade_duration = Duration::from_millis(config.fade_duration_ms as u64);
+            let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
             
-            // Only fade in Spotify if no other jingle was started in the meantime
-            if let Some(app_state) = app_clone.try_state::<AppState>() {
-                if !app_state.player.is_playing() {
-                    let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration);
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                // Wait for jingle to fade out first
+                std::thread::sleep(jingle_fade_duration);
+                
+                // Only fade in Spotify if no other jingle was started in the meantime
+                if let Some(app_state) = app_clone.try_state::<AppState>() {
+                    if !app_state.player.is_playing() {
+                        let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 }
 

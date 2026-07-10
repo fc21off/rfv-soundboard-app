@@ -367,7 +367,7 @@ function App() {
     
     // Toggle behavior: If clicking the active category, stop it
     if (activeCategory === categoryId) {
-      await handleStopJingle();
+      await handleStopJingle(false);
       return;
     }
 
@@ -385,9 +385,9 @@ function App() {
 
 
   // Stop Jingle
-  async function handleStopJingle() {
+  async function handleStopJingle(immediate: boolean = false) {
     try {
-      await invoke("stop_current_jingle");
+      await invoke("stop_current_jingle", { immediate });
       setActiveCategory(null);
       setPlayingSong(null);
     } catch (err) {
@@ -572,7 +572,7 @@ function App() {
             </button>
             <button 
               className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
-              onClick={handleStopJingle}
+              onClick={() => handleStopJingle(true)}
               disabled={!activeCategory}
             >
               STOP ACTIVE JINGLE
