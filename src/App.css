@@ -1576,3 +1576,47 @@ body {
   border-color: var(--accent-brand);
 }
 
+/* Loop Toggle Button Styles */
+.loop-toggle-btn {
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-pad);
+  color: var(--text-main);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.loop-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-brand);
+  color: var(--text-white);
+}
+
+.loop-toggle-btn.active {
+  background-color: rgba(203, 178, 106, 0.15) !important;
+  border-color: var(--accent-brand) !important;
+  color: var(--accent-brand) !important;
+  box-shadow: 0 0 10px rgba(203, 178, 106, 0.2);
+}
+
+.app-container.light .loop-toggle-btn {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: #cbd5e1;
+}
+
+.app-container.light .loop-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-brand);
+}
+
+.app-container.light .loop-toggle-btn.active {
+  background-color: rgba(203, 178, 106, 0.2) !important;
+  color: #cbb26a !important;
+}
+

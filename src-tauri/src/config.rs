@@ -23,6 +23,7 @@ pub struct AppConfig {
     pub language: String,
     pub fade_duration_ms: u32,
     pub spotify_fade_duration_ms: u32,
+    pub jingle_loop: bool,
     pub categories: HashMap<String, JingleCategory>,
 }
 
@@ -88,6 +89,7 @@ impl Default for AppConfig {
             language: "de".to_string(),
             fade_duration_ms: 1200,
             spotify_fade_duration_ms: 1000,
+            jingle_loop: false,
             categories,
         }
     }

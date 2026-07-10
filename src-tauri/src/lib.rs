@@ -119,6 +119,8 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
     // Spawn thread to monitor when the song ends and unmute Spotify
     let sink_clone = state.player.get_sink_clone();
     let app_clone = app.clone();
+    let selected_song_clone = selected_song.clone();
+    let play_vol_clone = play_vol;
     std::thread::spawn(move || {
         // Sleep slightly to let the audio start playing
         std::thread::sleep(Duration::from_millis(200));
@@ -151,6 +153,16 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                 PlaybackStatus::FinishedNaturally => {
                     if let Some(app_state) = app_clone.try_state::<AppState>() {
                         let config = app_state.config.lock().unwrap().clone();
+                        
+                        // If looping is enabled, replay the song and continue monitoring
+                        if config.jingle_loop {
+                            if let Ok(_) = app_state.player.play(&selected_song_clone, play_vol_clone) {
+                                // Wait for the new playback to start
+                                std::thread::sleep(Duration::from_millis(200));
+                                continue;
+                            }
+                        }
+                        
                         if !config.spotify_mute && !config.master_mute {
                             // Only fade in if no other jingle is currently playing
                             if !app_state.player.is_playing() {

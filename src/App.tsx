@@ -19,6 +19,7 @@ interface AppConfig {
   language: string;
   fade_duration_ms: number;
   spotify_fade_duration_ms: number;
+  jingle_loop: boolean;
   categories: Record<string, JingleCategory>;
 }
 
@@ -78,6 +79,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Verfügbare Songs (Klicke ➕ zum Hinzufügen)",
     queueEmpty: "Die Warteschlange ist leer. Klicke rechts auf das ➕ Symbol, um Songs hinzuzufügen.",
     clearQueue: "Warteschlange leeren",
+    loopActive: "DAUERSCHLEIFE (LOOP): AKTIV",
+    loopInactive: "DAUERSCHLEIFE (LOOP): INAKTIV",
   },
   en: {
     title: "EQUISOUND",
@@ -126,6 +129,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Available Songs (Click ➕ to Add)",
     queueEmpty: "The queue is empty. Click the ➕ symbol on the right to add songs.",
     clearQueue: "Clear Queue",
+    loopActive: "JINGLE LOOP: ACTIVE",
+    loopInactive: "JINGLE LOOP: INACTIVE",
   }
 };
 
@@ -378,6 +383,18 @@ function App() {
       }
     } catch (err) {
       console.error("Failed to toggle master mute:", err);
+    }
+  }
+
+  // Toggle Jingle Loop
+  async function handleLoopToggle() {
+    if (!config) return;
+    try {
+      const updatedConfig = { ...config, jingle_loop: !config.jingle_loop };
+      setConfig(updatedConfig);
+      await saveConfig(updatedConfig);
+    } catch (err) {
+      console.error("Failed to toggle loop:", err);
     }
   }
 
@@ -655,6 +672,12 @@ function App() {
               disabled={!activeCategory}
             >
               STOP ACTIVE JINGLE
+            </button>
+            <button 
+              className={`loop-toggle-btn ${config.jingle_loop ? "active" : ""}`}
+              onClick={handleLoopToggle}
+            >
+              🔁 {config.jingle_loop ? t.loopActive : t.loopInactive}
             </button>
           </div>
 
@@ -1076,6 +1099,7 @@ function App() {
                       language: "de",
                       fade_duration_ms: 1200,
                       spotify_fade_duration_ms: 1000,
+                      jingle_loop: false,
                       categories: {
                         pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
                         fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
