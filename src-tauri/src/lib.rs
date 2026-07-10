@@ -15,6 +15,7 @@ use config::AppConfig;
 pub struct AppState {
     pub player: AudioPlayer,
     pub config: Mutex<AppConfig>,
+    pub queues: Mutex<std::collections::HashMap<String, Vec<String>>>,
 }
 
 #[tauri::command]
@@ -81,14 +82,31 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
     let category = config.categories.get(&category_id)
         .ok_or_else(|| format!("Kategorie {} nicht gefunden", category_id))?;
         
-    if category.songs.is_empty() {
-        return Err("Keine Lieder in dieser Kategorie hinterlegt. Bitte füge in den Einstellungen Lieder hinzu.".to_string());
-    }
-    
-    // Select random song
-    let mut rng = rand::thread_rng();
-    let selected_song = category.songs.choose(&mut rng)
-        .ok_or_else(|| "Zufälliges Lied konnte nicht ausgewählt werden".to_string())?;
+    // Determine the song to play: check queue first, otherwise random
+    let mut queues = state.queues.lock().unwrap();
+    let queued_song = if let Some(queue) = queues.get_mut(&category_id) {
+        if !queue.is_empty() {
+            Some(queue.remove(0))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let selected_song = match queued_song {
+        Some(song) => song,
+        None => {
+            if category.songs.is_empty() {
+                return Err("Keine Lieder in dieser Kategorie hinterlegt. Bitte füge in den Einstellungen Lieder hinzu.".to_string());
+            }
+            // Select random song
+            let mut rng = rand::thread_rng();
+            let rand_song = category.songs.choose(&mut rng)
+                .ok_or_else(|| "Zufälliges Lied konnte nicht ausgewählt werden".to_string())?;
+            rand_song.clone()
+        }
+    };
         
     // First, mute Spotify in the mixer
     let _ = windows_audio::mute_spotify(true);
@@ -96,7 +114,7 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
     // Play the song at the category's specific volume
     // If master mute is on, play at 0 volume, otherwise category volume
     let play_vol = if config.master_mute { 0.0 } else { category.volume };
-    state.player.play(selected_song, play_vol)?;
+    state.player.play(&selected_song, play_vol)?;
     
     // Spawn thread to monitor when the song ends and unmute Spotify
     let sink_clone = state.player.get_sink_clone();
@@ -152,10 +170,35 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         }
     });
     
-    Ok(std::path::Path::new(selected_song)
+    Ok(std::path::Path::new(&selected_song)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| selected_song.clone()))
+}
+
+#[tauri::command]
+fn add_to_queue(state: State<'_, AppState>, category_id: String, song_path: String) -> Result<(), String> {
+    let mut queues = state.queues.lock().unwrap();
+    let queue = queues.entry(category_id).or_insert_with(Vec::new);
+    if !queue.contains(&song_path) {
+        queue.push(song_path);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn remove_from_queue(state: State<'_, AppState>, category_id: String, song_path: String) -> Result<(), String> {
+    let mut queues = state.queues.lock().unwrap();
+    if let Some(queue) = queues.get_mut(&category_id) {
+        queue.retain(|x| x != &song_path);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn get_queues(state: State<'_, AppState>) -> Result<std::collections::HashMap<String, Vec<String>>, String> {
+    let queues = state.queues.lock().unwrap();
+    Ok(queues.clone())
 }
 
 
@@ -246,6 +289,7 @@ pub fn run() {
             app.manage(AppState {
                 player,
                 config: Mutex::new(config),
+                queues: Mutex::new(std::collections::HashMap::new()),
             });
             
             Ok(())
@@ -262,7 +306,10 @@ pub fn run() {
             mute_all,
             is_jingle_playing,
             set_jingle_volume,
-            get_spotify_playback_state
+            get_spotify_playback_state,
+            add_to_queue,
+            remove_from_queue,
+            get_queues
         ])
 
 

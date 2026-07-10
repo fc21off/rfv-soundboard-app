@@ -209,6 +209,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [spotifyPlaying, setSpotifyPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [queues, setQueues] = useState<Record<string, string[]>>({});
 
   // Load config on startup
   useEffect(() => {
@@ -279,6 +280,10 @@ function App() {
         // Poll Spotify active session state
         const isSpotifyActive = await invoke<boolean>("get_spotify_playback_state");
         setSpotifyPlaying(isSpotifyActive);
+
+        // Poll category queues state
+        const latestQueues = await invoke<Record<string, string[]>>("get_queues");
+        setQueues(latestQueues);
       } catch (err) {
         console.error("Playback status poll failed:", err);
       }
@@ -457,8 +462,43 @@ function App() {
       if (!category) return;
       category.songs = category.songs.filter((s) => s !== songPath);
       await saveConfig(updatedConfig);
+      
+      // Remove from queue if it was queued
+      await handleRemoveFromQueue(categoryId, songPath);
     } catch (err) {
       console.error("Failed to remove song:", err);
+    }
+  }
+
+  // Add a song to the queue
+  async function handleAddToQueue(categoryId: string, songPath: string) {
+    try {
+      await invoke("add_to_queue", { categoryId, songPath });
+      const updatedQueues = await invoke<Record<string, string[]>>("get_queues");
+      setQueues(updatedQueues);
+    } catch (err) {
+      console.error("Failed to add song to queue:", err);
+    }
+  }
+
+  // Remove a song from the queue
+  async function handleRemoveFromQueue(categoryId: string, songPath: string) {
+    try {
+      await invoke("remove_from_queue", { categoryId, songPath });
+      const updatedQueues = await invoke<Record<string, string[]>>("get_queues");
+      setQueues(updatedQueues);
+    } catch (err) {
+      console.error("Failed to remove song from queue:", err);
+    }
+  }
+
+  // Toggle a song in the queue (used in modal)
+  async function handleToggleQueue(categoryId: string, songPath: string) {
+    const categoryQueue = queues[categoryId] || [];
+    if (categoryQueue.includes(songPath)) {
+      await handleRemoveFromQueue(categoryId, songPath);
+    } else {
+      await handleAddToQueue(categoryId, songPath);
     }
   }
 
@@ -632,17 +672,42 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="idle-visual">
-                    <div className="waveform-animation idle">
-                      <span className="bar bar1" style={{ height: "12px" }}></span>
-                      <span className="bar bar2" style={{ height: "20px" }}></span>
-                      <span className="bar bar3" style={{ height: "32px" }}></span>
-                      <span className="bar bar4" style={{ height: "24px" }}></span>
-                      <span className="bar bar5" style={{ height: "14px" }}></span>
-                      <span className="bar bar6" style={{ height: "28px" }}></span>
-                      <span className="bar bar7" style={{ height: "16px" }}></span>
+                  (queues["tusch"] && queues["tusch"].length > 0) ? (
+                    <div className="pad-queue-list">
+                      <span className="queue-title">NÄCHSTE TITEL:</span>
+                      {queues["tusch"].slice(0, 2).map((songPath, idx) => (
+                        <div key={songPath} className="pad-queue-item">
+                          <span className="queue-num">#{idx + 1}</span>
+                          <span className="queue-name" title={songPath}>{getFileName(songPath)}</span>
+                          <button 
+                            className="btn-dequeue-mini" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFromQueue("tusch", songPath);
+                            }}
+                            title="Aus Warteschlange entfernen"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {queues["tusch"].length > 2 && (
+                        <span className="queue-more">... und {queues["tusch"].length - 2} weitere</span>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="idle-visual">
+                      <div className="waveform-animation idle">
+                        <span className="bar bar1" style={{ height: "12px" }}></span>
+                        <span className="bar bar2" style={{ height: "20px" }}></span>
+                        <span className="bar bar3" style={{ height: "32px" }}></span>
+                        <span className="bar bar4" style={{ height: "24px" }}></span>
+                        <span className="bar bar5" style={{ height: "14px" }}></span>
+                        <span className="bar bar6" style={{ height: "28px" }}></span>
+                        <span className="bar bar7" style={{ height: "16px" }}></span>
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -650,6 +715,7 @@ function App() {
                 <span>{activeCategory === "tusch" ? t.jingleActive : t.jingleIdle}</span>
                 <span>
                   {config.categories.tusch?.songs.length || 0} {config.categories.tusch?.songs.length === 1 ? t.songsCountSingle : t.songsCountPlural}
+                  {queues["tusch"] && queues["tusch"].length > 0 && ` (${queues["tusch"].length} Q)`}
                 </span>
               </div>
             </button>
@@ -691,17 +757,42 @@ function App() {
                         </div>
                       </div>
                     ) : (
-                      <div className="idle-visual">
-                        <div className="waveform-animation idle">
-                          <span className="bar bar1" style={{ height: "12px" }}></span>
-                          <span className="bar bar2" style={{ height: "20px" }}></span>
-                          <span className="bar bar3" style={{ height: "32px" }}></span>
-                          <span className="bar bar4" style={{ height: "24px" }}></span>
-                          <span className="bar bar5" style={{ height: "14px" }}></span>
-                          <span className="bar bar6" style={{ height: "28px" }}></span>
-                          <span className="bar bar7" style={{ height: "16px" }}></span>
+                      (queues[cat.id] && queues[cat.id].length > 0) ? (
+                        <div className="pad-queue-list">
+                          <span className="queue-title">NÄCHSTE TITEL:</span>
+                          {queues[cat.id].slice(0, 2).map((songPath, idx) => (
+                            <div key={songPath} className="pad-queue-item">
+                              <span className="queue-num">#{idx + 1}</span>
+                              <span className="queue-name" title={songPath}>{getFileName(songPath)}</span>
+                              <button 
+                                className="btn-dequeue-mini" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromQueue(cat.id, songPath);
+                                }}
+                                title="Aus Warteschlange entfernen"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          {queues[cat.id].length > 2 && (
+                            <span className="queue-more">... und {queues[cat.id].length - 2} weitere</span>
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="idle-visual">
+                          <div className="waveform-animation idle">
+                            <span className="bar bar1" style={{ height: "12px" }}></span>
+                            <span className="bar bar2" style={{ height: "20px" }}></span>
+                            <span className="bar bar3" style={{ height: "32px" }}></span>
+                            <span className="bar bar4" style={{ height: "24px" }}></span>
+                            <span className="bar bar5" style={{ height: "14px" }}></span>
+                            <span className="bar bar6" style={{ height: "28px" }}></span>
+                            <span className="bar bar7" style={{ height: "16px" }}></span>
+                          </div>
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -712,6 +803,7 @@ function App() {
                     </span>
                     <span>
                       {songCount} {songCount === 1 ? t.songsCountSingle : t.songsCountPlural}
+                      {queues[cat.id] && queues[cat.id].length > 0 && ` (${queues[cat.id].length} in Warteschlange)`}
                     </span>
                   </div>
                 </button>
@@ -817,12 +909,27 @@ function App() {
                         {songs.length === 0 ? (
                           <li className="no-songs">{t.noSongs}</li>
                         ) : (
-                          songs.map((song) => (
-                            <li key={song} className="song-item">
-                              <span className="song-name" title={song}>{getFileName(song)}</span>
-                              <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
-                            </li>
-                          ))
+                          songs.map((song) => {
+                            const categoryQueue = queues[cat.id] || [];
+                            const isQueued = categoryQueue.includes(song);
+                            const queueIdx = categoryQueue.indexOf(song);
+                            
+                            return (
+                              <li key={song} className="song-item">
+                                <span className="song-name" title={song}>{getFileName(song)}</span>
+                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                  <button
+                                    className={`btn-action-queue ${isQueued ? "active" : ""}`}
+                                    onClick={() => handleToggleQueue(cat.id, song)}
+                                    title={isQueued ? "Aus Warteschlange entfernen" : "In Warteschlange einreihen"}
+                                  >
+                                    {isQueued ? `⏭️ #${queueIdx + 1}` : "⏭️ Play Next"}
+                                  </button>
+                                  <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
+                                </div>
+                              </li>
+                            );
+                          })
                         )}
                       </ul>
                     </div>

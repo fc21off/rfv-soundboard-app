@@ -1211,3 +1211,122 @@ body {
 .tusch-pad-btn.tusch .waveform-animation.idle .bar {
   background-color: #d4af37;
 }
+
+/* Pad Queue List Styles */
+.pad-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.queue-title {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 2px;
+}
+
+.pad-queue-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 4px 8px;
+  height: 22px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.queue-num {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent-brand);
+}
+
+.queue-name {
+  font-size: 0.72rem;
+  color: var(--text-white);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-grow: 1;
+  text-align: left;
+}
+
+.btn-dequeue-mini {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.btn-dequeue-mini:hover {
+  color: #ef4444;
+}
+
+.queue-more {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 500;
+  text-align: left;
+}
+
+/* Modal Queue Action Button Styles */
+.btn-action-queue {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-pad);
+  color: var(--text-main);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-action-queue:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-brand);
+  color: var(--text-white);
+}
+
+.btn-action-queue.active {
+  background-color: var(--accent-brand) !important;
+  border-color: var(--accent-brand) !important;
+  color: #000000 !important;
+}
+
+.app-container.light .btn-action-queue {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #cbd5e1;
+}
+
+.app-container.light .btn-action-queue:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-brand);
+}
+
+.app-container.light .btn-action-queue.active {
+  background-color: var(--accent-brand) !important;
+  color: #ffffff !important;
+}
