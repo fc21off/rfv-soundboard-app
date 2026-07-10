@@ -503,16 +503,6 @@ function App() {
     }
   }
 
-  // Toggle a song in the queue (used in modal)
-  async function handleToggleQueue(categoryId: string, songPath: string) {
-    const categoryQueue = queues[categoryId] || [];
-    if (categoryQueue.includes(songPath)) {
-      await handleRemoveFromQueue(categoryId, songPath);
-    } else {
-      await handleAddToQueue(categoryId, songPath);
-    }
-  }
-
   // Swap items in queue for reordering
   function moveQueueItem(catId: string, index: number, direction: "up" | "down") {
     const queue = queues[catId] || [];
@@ -691,17 +681,6 @@ function App() {
               <div className="tusch-pad-header">
                 <span className="tusch-icon">🏆</span>
                 <span className="tusch-label">{t.tusch}</span>
-                
-                <button
-                  className="btn-pad-queue-manage tusch-queue-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setQueueModalCategory("tusch");
-                  }}
-                  title="Warteschlange bearbeiten"
-                >
-                  📋
-                </button>
               </div>
 
               {/* Centered Visual Element */}
@@ -768,6 +747,17 @@ function App() {
                   {queues["tusch"] && queues["tusch"].length > 0 && ` (${queues["tusch"].length} Q)`}
                 </span>
               </div>
+
+              <button
+                className="btn-pad-queue-manage"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQueueModalCategory("tusch");
+                }}
+                title="Warteschlange bearbeiten"
+              >
+                📋
+              </button>
             </button>
           </div>
         </div>
@@ -970,27 +960,12 @@ function App() {
                         {songs.length === 0 ? (
                           <li className="no-songs">{t.noSongs}</li>
                         ) : (
-                          songs.map((song) => {
-                            const categoryQueue = queues[cat.id] || [];
-                            const isQueued = categoryQueue.includes(song);
-                            const queueIdx = categoryQueue.indexOf(song);
-                            
-                            return (
-                              <li key={song} className="song-item">
-                                <span className="song-name" title={song}>{getFileName(song)}</span>
-                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                  <button
-                                    className={`btn-action-queue ${isQueued ? "active" : ""}`}
-                                    onClick={() => handleToggleQueue(cat.id, song)}
-                                    title={isQueued ? "Aus Warteschlange entfernen" : "In Warteschlange einreihen"}
-                                  >
-                                    {isQueued ? `⏭️ #${queueIdx + 1}` : "⏭️ Play Next"}
-                                  </button>
-                                  <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
-                                </div>
-                              </li>
-                            );
-                          })
+                          songs.map((song) => (
+                            <li key={song} className="song-item">
+                              <span className="song-name" title={song}>{getFileName(song)}</span>
+                              <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
+                            </li>
+                          ))
                         )}
                       </ul>
                     </div>
