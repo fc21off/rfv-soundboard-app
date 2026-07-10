@@ -129,4 +129,72 @@ pub fn is_spotify_active() -> bool {
     active
 }
 
+/// Fade in Spotify volume from 0.0 to target_volume over a duration
+pub fn fade_in_spotify(target_volume: f32, duration: std::time::Duration) -> Result<(), String> {
+    unsafe {
+        let _init_res = CoInitializeEx(None, COINIT_MULTITHREADED);
+        
+        let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
+            .map_err(|e| format!("Failed to create MMDeviceEnumerator: {:?}", e))?;
+            
+        let device = enumerator.GetDefaultAudioEndpoint(eRender, eConsole)
+            .map_err(|e| format!("Failed to get default audio endpoint: {:?}", e))?;
+            
+        let manager: IAudioSessionManager2 = device.Activate(CLSCTX_ALL, None)
+            .map_err(|e| format!("Failed to activate IAudioSessionManager2: {:?}", e))?;
+            
+        let session_enum = manager.GetSessionEnumerator()
+            .map_err(|e| format!("Failed to get session enumerator: {:?}", e))?;
+            
+        let count = session_enum.GetCount()
+            .map_err(|e| format!("Failed to get session count: {:?}", e))?;
+            
+        // Find Spotify session controls
+        let mut spotify_volumes = Vec::new();
+        for i in 0..count {
+            if let Ok(session_control) = session_enum.GetSession(i) {
+                if let Ok(session_control2) = session_control.cast::<IAudioSessionControl2>() {
+                    if let Ok(pid) = session_control2.GetProcessId() {
+                        if let Some(name) = get_process_name(pid) {
+                            if name.contains("spotify") {
+                                if let Ok(volume_control) = session_control.cast::<ISimpleAudioVolume>() {
+                                    spotify_volumes.push(volume_control);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if spotify_volumes.is_empty() {
+            return Ok(());
+        }
+
+        // Set volume to 0.0 and unmute first
+        for vol_control in &spotify_volumes {
+            let _ = vol_control.SetMasterVolume(0.0, std::ptr::null());
+            let _ = vol_control.SetMute(false, std::ptr::null());
+        }
+
+        // Fade in loop
+        let steps = 20;
+        let step_duration = duration / steps;
+        for step in 1..=steps {
+            let current_vol = (step as f32 / steps as f32) * target_volume;
+            for vol_control in &spotify_volumes {
+                let _ = vol_control.SetMasterVolume(current_vol, std::ptr::null());
+            }
+            std::thread::sleep(step_duration);
+        }
+
+        // Ensure we end exactly at target volume
+        for vol_control in &spotify_volumes {
+            let _ = vol_control.SetMasterVolume(target_volume, std::ptr::null());
+        }
+    }
+    Ok(())
+}
+
+
 

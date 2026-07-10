@@ -21,6 +21,7 @@ pub struct AppConfig {
     pub theme: String,
     pub language: String,
     pub fade_duration_ms: u32,
+    pub spotify_fade_duration_ms: u32,
     pub categories: HashMap<String, JingleCategory>,
 }
 
@@ -75,6 +76,7 @@ impl Default for AppConfig {
             theme: "dark".to_string(),
             language: "de".to_string(),
             fade_duration_ms: 1200,
+            spotify_fade_duration_ms: 1000,
             categories,
         }
     }

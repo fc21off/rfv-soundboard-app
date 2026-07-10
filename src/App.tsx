@@ -18,6 +18,7 @@ interface AppConfig {
   theme: string;
   language: string;
   fade_duration_ms: number;
+  spotify_fade_duration_ms: number;
   categories: Record<string, JingleCategory>;
 }
 
@@ -65,6 +66,7 @@ const TRANSLATIONS = {
     settingThemeDark: "Nacht-Modus (Dunkel)",
     settingThemeLight: "Tag-Modus (Hell / Outdoor)",
     settingFade: "FADE-OUT DAUER (MS)",
+    settingSpotifyFade: "SPOTIFY EINBLENDE-DAUER (MS)",
     btnReset: "Werksreset",
     resetConfirm: "Möchtest du wirklich alle Einstellungen auf Werkseinstellungen zurücksetzen?",
     errorNoSongs: "Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu."
@@ -105,6 +107,7 @@ const TRANSLATIONS = {
     settingThemeDark: "Night Mode (Dark)",
     settingThemeLight: "Day Mode (Light / Outdoor)",
     settingFade: "FADE-OUT DURATION (MS)",
+    settingSpotifyFade: "SPOTIFY FADE-IN DURATION (MS)",
     btnReset: "Factory Reset",
     resetConfirm: "Are you sure you want to reset all settings to defaults?",
     errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs' first."
@@ -832,6 +835,24 @@ function App() {
                   style={{ accentColor: "var(--accent-brand)", cursor: "pointer" }}
                 />
               </div>
+
+              {/* Spotify Fade in Slider */}
+              <div className="setting-item">
+                <label>{t.settingSpotifyFade}: {config.spotify_fade_duration_ms}ms</label>
+                <input 
+                  type="range"
+                  min="200"
+                  max="4000"
+                  step="100"
+                  value={config.spotify_fade_duration_ms}
+                  onChange={(e) => {
+                    const updated = { ...config, spotify_fade_duration_ms: Number(e.target.value) };
+                    setConfig(updated);
+                  }}
+                  onMouseUp={() => saveConfig(config)}
+                  style={{ accentColor: "var(--accent-brand)", cursor: "pointer" }}
+                />
+              </div>
             </div>
 
             <div className="modal-footer" style={{ justifyContent: "space-between" }}>
@@ -847,6 +868,7 @@ function App() {
                       theme: "dark",
                       language: "de",
                       fade_duration_ms: 1200,
+                      spotify_fade_duration_ms: 1000,
                       categories: {
                         pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
                         fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
