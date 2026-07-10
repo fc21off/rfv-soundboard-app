@@ -16,6 +16,7 @@ pub struct AppState {
     pub player: AudioPlayer,
     pub config: Mutex<AppConfig>,
     pub queues: Mutex<std::collections::HashMap<String, Vec<String>>>,
+    pub active_category: Mutex<Option<String>>,
 }
 
 #[tauri::command]
@@ -114,6 +115,13 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
     // Play the song at the category's specific volume
     // If master mute is on, play at 0 volume, otherwise category volume
     let play_vol = if config.master_mute { 0.0 } else { category.volume };
+    
+    // Set active category right before playing
+    {
+        let mut active_cat = state.active_category.lock().unwrap();
+        *active_cat = Some(category_id.clone());
+    }
+
     state.player.play(&selected_song, play_vol)?;
     
     // Spawn thread to monitor when the song ends and unmute Spotify
@@ -163,6 +171,12 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                             }
                         }
                         
+                        // Clear active category on backend since jingle finished naturally
+                        {
+                            let mut active_cat = app_state.active_category.lock().unwrap();
+                            *active_cat = None;
+                        }
+
                         if !config.spotify_mute && !config.master_mute {
                             // Only fade in if no other jingle is currently playing
                             if !app_state.player.is_playing() {
@@ -223,6 +237,12 @@ fn set_queue(state: State<'_, AppState>, category_id: String, new_queue: Vec<Str
 
 #[tauri::command]
 fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bool) {
+    // Clear active category
+    {
+        let mut active_cat = state.active_category.lock().unwrap();
+        *active_cat = None;
+    }
+
     let config = state.config.lock().unwrap().clone();
     
     if immediate {
@@ -284,6 +304,11 @@ fn is_jingle_playing(state: State<'_, AppState>) -> bool {
 }
 
 #[tauri::command]
+fn get_active_category(state: State<'_, AppState>) -> Option<String> {
+    state.active_category.lock().unwrap().clone()
+}
+
+#[tauri::command]
 fn set_jingle_volume(state: State<'_, AppState>, vol: f32) {
     state.player.set_volume(vol);
 }
@@ -309,6 +334,7 @@ pub fn run() {
                 player,
                 config: Mutex::new(config),
                 queues: Mutex::new(std::collections::HashMap::new()),
+                active_category: Mutex::new(None),
             });
             
             Ok(())
@@ -324,6 +350,7 @@ pub fn run() {
             stop_current_jingle,
             mute_all,
             is_jingle_playing,
+            get_active_category,
             set_jingle_volume,
             get_spotify_playback_state,
             add_to_queue,

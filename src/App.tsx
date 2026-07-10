@@ -287,9 +287,9 @@ function App() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const isPlaying = await invoke<boolean>("is_jingle_playing");
-        if (!isPlaying) {
-          setActiveCategory(null);
+        const activeCat = await invoke<string | null>("get_active_category");
+        setActiveCategory(activeCat);
+        if (!activeCat) {
           setPlayingSong(null);
         }
         
