@@ -620,7 +620,7 @@ body {
 .mixer-board {
   flex-grow: 1;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   min-height: 0;
 }
@@ -645,6 +645,7 @@ body {
 .mixer-channel.fehlerfrei { border-top: 3px solid #16a34a; }
 .mixer-channel.einlauf { border-top: 3px solid #d97706; }
 .mixer-channel.siegerrunde { border-top: 3px solid #c026d3; }
+.mixer-channel.tusch { border-top: 3px solid #06b6d4; }
 
 /* Color-coded vertical tracks for instant fader recognition */
 .mixer-channel.spotify .vertical-slider {
@@ -666,6 +667,10 @@ body {
 .mixer-channel.siegerrunde .vertical-slider {
   background: rgba(192, 38, 211, 0.12);
   border-color: rgba(192, 38, 211, 0.3);
+}
+.mixer-channel.tusch .vertical-slider {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.3);
 }
 
 /* Fader Strip Area */
@@ -761,6 +766,7 @@ body {
 .custom-fader-track.fehlerfrei .custom-fader-fill { background: #16a34a; box-shadow: 0 0 8px rgba(22, 163, 74, 0.4); }
 .custom-fader-track.einlauf .custom-fader-fill { background: #d97706; box-shadow: 0 0 8px rgba(217, 119, 6, 0.4); }
 .custom-fader-track.siegerrunde .custom-fader-fill { background: #c026d3; box-shadow: 0 0 8px rgba(192, 38, 211, 0.4); }
+.custom-fader-track.tusch .custom-fader-fill { background: #06b6d4; box-shadow: 0 0 8px rgba(6, 182, 212, 0.4); }
 
 /* White studio style console slider thumb */
 .custom-fader-thumb {
@@ -1109,3 +1115,102 @@ body {
   object-fit: contain;
   border-radius: 4px;
 }
+
+/* Soundeffekt / Tusch Sidebar Button Styles */
+.tusch-pad-btn {
+  width: 100%;
+  aspect-ratio: 1.1 / 1; /* Slightly wider than tall, making it look like a very nice solid square panel */
+  background: var(--bg-pad);
+  border: 1px solid var(--border-pad);
+  border-radius: 12px;
+  color: var(--text-main);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.tusch-pad-btn::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+}
+
+.tusch-pad-btn:hover {
+  border-color: #06b6d4;
+  background-color: rgba(6, 182, 212, 0.05);
+}
+
+.tusch-pad-btn.playing {
+  background-color: #06b6d4 !important;
+  border-color: #22d3ee;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+}
+
+.tusch-pad-btn.playing::after {
+  background-color: #ffffff;
+  box-shadow: 0 0 8px #ffffff, 0 0 16px #06b6d4;
+}
+
+.tusch-pad-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tusch-icon {
+  font-size: 1.15rem;
+}
+
+.tusch-label {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-white);
+  line-height: 1.2;
+}
+
+.tusch-pad-btn.playing .tusch-label {
+  color: #ffffff;
+}
+
+.tusch-pad-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  width: 100%;
+}
+
+.tusch-pad-btn.playing .tusch-pad-status {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tusch-card {
+  flex-grow: 1; /* Automatically stretches to fill remaining space in the sidebar */
+  justify-content: space-between;
+}
+
+.app-container.light .tusch-pad-btn:hover {
+  background-color: rgba(6, 182, 212, 0.1);
+}
+
+/* Specific idle state coloring for the tusch waveform */
+.tusch-pad-btn.tusch .waveform-animation.idle .bar {
+  background-color: #06b6d4;
+}
+
+

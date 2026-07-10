@@ -27,6 +27,7 @@ const CATEGORIES_INFO = [
   { id: "fehlerfrei", labelKey: "fehlerfrei", descKey: "fehlerfreiDesc", cssClass: "fehlerfrei" },
   { id: "einlauf", labelKey: "einlauf", descKey: "einlaufDesc", cssClass: "einlauf" },
   { id: "siegerrunde", labelKey: "siegerrunde", descKey: "siegerrundeDesc", cssClass: "siegerrunde" },
+  { id: "tusch", labelKey: "tusch", descKey: "tuschDesc", cssClass: "tusch" },
 ];
 
 const TRANSLATIONS = {
@@ -52,6 +53,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Einlauf zur Siegerehrung",
     siegerrunde: "Siegerrunde",
     siegerrundeDesc: "Ehrenrunde des Siegers",
+    tusch: "Soundeffekt / Tusch",
+    tuschDesc: "Tusch oder Soundeffekt",
     jingleActive: "JINGLE AKTIV",
     jingleIdle: "BEREIT",
     songsCountSingle: "Lied geladen",
@@ -93,6 +96,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Award Ceremony Entrance",
     siegerrunde: "Victory Lap",
     siegerrundeDesc: "Winner's Victory Lap",
+    tusch: "Sound Effect / Fanfare",
+    tuschDesc: "Fanfare or Sound Effect",
     jingleActive: "JINGLE PLAYING",
     jingleIdle: "STANDBY",
     songsCountSingle: "song loaded",
@@ -590,12 +595,66 @@ function App() {
               ⚙️ {t.btnSettings}
             </button>
           </div>
+
+          {/* Soundeffekt / Tusch Panel */}
+          <div className="panel-card tusch-card">
+            <span className="system-title">{t.tusch}</span>
+            <button
+              className={`tusch-pad-btn tusch ${activeCategory === "tusch" ? "playing" : ""}`}
+              onClick={() => handleTriggerJingle("tusch")}
+              disabled={config.master_mute}
+            >
+              <div className="tusch-pad-header">
+                <span className="tusch-icon">📣</span>
+                <span className="tusch-label">{t.tusch}</span>
+              </div>
+
+              {/* Centered Visual Element */}
+              <div className="pad-center-content">
+                {activeCategory === "tusch" ? (
+                  <div className="active-visual">
+                    <div className="waveform-animation playing">
+                      <span className="bar bar1"></span>
+                      <span className="bar bar2"></span>
+                      <span className="bar bar3"></span>
+                      <span className="bar bar4"></span>
+                      <span className="bar bar5"></span>
+                      <span className="bar bar6"></span>
+                      <span className="bar bar7"></span>
+                    </div>
+                    <div className="active-song-name">
+                      {playingSong ? getFileName(playingSong) : "..."}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="idle-visual">
+                    <div className="waveform-animation idle">
+                      <span className="bar bar1" style={{ height: "12px" }}></span>
+                      <span className="bar bar2" style={{ height: "20px" }}></span>
+                      <span className="bar bar3" style={{ height: "32px" }}></span>
+                      <span className="bar bar4" style={{ height: "24px" }}></span>
+                      <span className="bar bar5" style={{ height: "14px" }}></span>
+                      <span className="bar bar6" style={{ height: "28px" }}></span>
+                      <span className="bar bar7" style={{ height: "16px" }}></span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="tusch-pad-status">
+                <span>{activeCategory === "tusch" ? t.jingleActive : t.jingleIdle}</span>
+                <span>
+                  {config.categories.tusch?.songs.length || 0} {config.categories.tusch?.songs.length === 1 ? t.songsCountSingle : t.songsCountPlural}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Center Spalte: Launchpad Grid & Stop Button */}
         <div className="center-column">
           <div className="launchpad-grid">
-            {CATEGORIES_INFO.map((cat) => {
+            {CATEGORIES_INFO.filter(cat => cat.id !== "tusch").map((cat) => {
               const categoryData = config.categories[cat.id];
               const songCount = categoryData?.songs.length || 0;
               const isPlaying = activeCategory === cat.id;
@@ -873,7 +932,8 @@ function App() {
                         pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
                         fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },
                         einlauf: { id: "einlauf", name: "Siegerehrung Einlauf", volume: 0.8, songs: [] },
-                        siegerrunde: { id: "siegerrunde", name: "Siegerrunde", volume: 0.8, songs: [] }
+                        siegerrunde: { id: "siegerrunde", name: "Siegerrunde", volume: 0.8, songs: [] },
+                        tusch: { id: "tusch", name: "Soundeffekt / Tusch", volume: 0.8, songs: [] }
                       }
                     };
                     await saveConfig(defaultCfg);

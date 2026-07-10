@@ -69,6 +69,16 @@ impl Default for AppConfig {
             },
         );
 
+        categories.insert(
+            "tusch".to_string(),
+            JingleCategory {
+                id: "tusch".to_string(),
+                name: "Soundeffekt / Tusch".to_string(),
+                volume: 0.8,
+                songs: Vec::new(),
+            },
+        );
+
         Self {
             spotify_volume: 0.5,
             spotify_mute: false,
