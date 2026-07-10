@@ -79,8 +79,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Verfügbare Songs (Klicke ➕ zum Hinzufügen)",
     queueEmpty: "Die Warteschlange ist leer. Klicke rechts auf das ➕ Symbol, um Songs hinzuzufügen.",
     clearQueue: "Warteschlange leeren",
-    loopActive: "DAUERSCHLEIFE (LOOP): AKTIV",
-    loopInactive: "DAUERSCHLEIFE (LOOP): INAKTIV",
+    loopActive: "Dauerschleife: Aktiv",
+    loopInactive: "Dauerschleife: Inaktiv",
   },
   en: {
     title: "EQUISOUND",
@@ -129,8 +129,8 @@ const TRANSLATIONS = {
     queueHeaderAvailable: "Available Songs (Click ➕ to Add)",
     queueEmpty: "The queue is empty. Click the ➕ symbol on the right to add songs.",
     clearQueue: "Clear Queue",
-    loopActive: "JINGLE LOOP: ACTIVE",
-    loopInactive: "JINGLE LOOP: INACTIVE",
+    loopActive: "Loop: Active",
+    loopInactive: "Loop: Inactive",
   }
 };
 
@@ -677,7 +677,7 @@ function App() {
               className={`loop-toggle-btn ${config.jingle_loop ? "active" : ""}`}
               onClick={handleLoopToggle}
             >
-              🔁 {config.jingle_loop ? t.loopActive : t.loopInactive}
+              {config.jingle_loop ? t.loopActive : t.loopInactive}
             </button>
           </div>
 
