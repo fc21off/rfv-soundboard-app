@@ -53,8 +53,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Einlauf zur Siegerehrung",
     siegerrunde: "Siegerrunde",
     siegerrundeDesc: "Ehrenrunde des Siegers",
-    tusch: "Soundeffekt / Tusch",
-    tuschDesc: "Tusch oder Soundeffekt",
+    tusch: "Sieger-Tusch / Fanfare",
+    tuschDesc: "Tusch oder Sieger-Fanfare",
     jingleActive: "JINGLE AKTIV",
     jingleIdle: "BEREIT",
     songsCountSingle: "Lied geladen",
@@ -96,8 +96,8 @@ const TRANSLATIONS = {
     einlaufDesc: "Award Ceremony Entrance",
     siegerrunde: "Victory Lap",
     siegerrundeDesc: "Winner's Victory Lap",
-    tusch: "Sound Effect / Fanfare",
-    tuschDesc: "Fanfare or Sound Effect",
+    tusch: "Victory Fanfare / Fanfare",
+    tuschDesc: "Victory Fanfare or Sound Effect",
     jingleActive: "JINGLE PLAYING",
     jingleIdle: "STANDBY",
     songsCountSingle: "song loaded",
@@ -610,7 +610,7 @@ function App() {
               disabled={config.master_mute}
             >
               <div className="tusch-pad-header">
-                <span className="tusch-icon">📣</span>
+                <span className="tusch-icon">🏆</span>
                 <span className="tusch-label">{t.tusch}</span>
               </div>
 

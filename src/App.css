@@ -645,7 +645,7 @@ body {
 .mixer-channel.fehlerfrei { border-top: 3px solid #16a34a; }
 .mixer-channel.einlauf { border-top: 3px solid #d97706; }
 .mixer-channel.siegerrunde { border-top: 3px solid #c026d3; }
-.mixer-channel.tusch { border-top: 3px solid #06b6d4; }
+.mixer-channel.tusch { border-top: 3px solid #d4af37; }
 
 /* Color-coded vertical tracks for instant fader recognition */
 .mixer-channel.spotify .vertical-slider {
@@ -669,8 +669,8 @@ body {
   border-color: rgba(192, 38, 211, 0.3);
 }
 .mixer-channel.tusch .vertical-slider {
-  background: rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.3);
 }
 
 /* Fader Strip Area */
@@ -766,7 +766,7 @@ body {
 .custom-fader-track.fehlerfrei .custom-fader-fill { background: #16a34a; box-shadow: 0 0 8px rgba(22, 163, 74, 0.4); }
 .custom-fader-track.einlauf .custom-fader-fill { background: #d97706; box-shadow: 0 0 8px rgba(217, 119, 6, 0.4); }
 .custom-fader-track.siegerrunde .custom-fader-fill { background: #c026d3; box-shadow: 0 0 8px rgba(192, 38, 211, 0.4); }
-.custom-fader-track.tusch .custom-fader-fill { background: #06b6d4; box-shadow: 0 0 8px rgba(6, 182, 212, 0.4); }
+.custom-fader-track.tusch .custom-fader-fill { background: #d4af37; box-shadow: 0 0 8px rgba(212, 175, 55, 0.4); }
 
 /* White studio style console slider thumb */
 .custom-fader-thumb {
@@ -1149,20 +1149,20 @@ body {
 }
 
 .tusch-pad-btn:hover {
-  border-color: #06b6d4;
-  background-color: rgba(6, 182, 212, 0.05);
+  border-color: #d4af37;
+  background-color: rgba(212, 175, 55, 0.05);
 }
 
 .tusch-pad-btn.playing {
-  background-color: #06b6d4 !important;
-  border-color: #22d3ee;
+  background-color: #d4af37 !important;
+  border-color: #f3c63f;
   color: #ffffff !important;
-  box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
 }
 
 .tusch-pad-btn.playing::after {
   background-color: #ffffff;
-  box-shadow: 0 0 8px #ffffff, 0 0 16px #06b6d4;
+  box-shadow: 0 0 8px #ffffff, 0 0 16px #d4af37;
 }
 
 .tusch-pad-header {
@@ -1204,12 +1204,10 @@ body {
 }
 
 .app-container.light .tusch-pad-btn:hover {
-  background-color: rgba(6, 182, 212, 0.1);
+  background-color: rgba(212, 175, 55, 0.1);
 }
 
 /* Specific idle state coloring for the tusch waveform */
 .tusch-pad-btn.tusch .waveform-animation.idle .bar {
-  background-color: #06b6d4;
+  background-color: #d4af37;
 }
-
-
