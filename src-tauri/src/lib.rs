@@ -135,6 +135,16 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         loop {
             std::thread::sleep(Duration::from_millis(200));
             
+            // Check if this thread has been superseded by a new jingle play
+            if let Some(app_state) = app_clone.try_state::<AppState>() {
+                let active_cat = app_state.active_category.lock().unwrap().clone();
+                if active_cat.as_ref() != Some(&category_id) {
+                    break;
+                }
+            } else {
+                break;
+            }
+            
             enum PlaybackStatus {
                 Playing,
                 FinishedNaturally,
