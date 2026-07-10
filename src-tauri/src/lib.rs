@@ -201,6 +201,13 @@ fn get_queues(state: State<'_, AppState>) -> Result<std::collections::HashMap<St
     Ok(queues.clone())
 }
 
+#[tauri::command]
+fn set_queue(state: State<'_, AppState>, category_id: String, new_queue: Vec<String>) -> Result<(), String> {
+    let mut queues = state.queues.lock().unwrap();
+    queues.insert(category_id, new_queue);
+    Ok(())
+}
+
 
 #[tauri::command]
 fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bool) {
@@ -309,7 +316,8 @@ pub fn run() {
             get_spotify_playback_state,
             add_to_queue,
             remove_from_queue,
-            get_queues
+            get_queues,
+            set_queue
         ])
 
 

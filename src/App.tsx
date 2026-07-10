@@ -72,7 +72,12 @@ const TRANSLATIONS = {
     settingSpotifyFade: "SPOTIFY EINBLENDE-DAUER (MS)",
     btnReset: "Werksreset",
     resetConfirm: "Möchtest du wirklich alle Einstellungen auf Werkseinstellungen zurücksetzen?",
-    errorNoSongs: "Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu."
+    errorNoSongs: "Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu.",
+    manageQueueTitle: "Warteschlange verwalten",
+    queueHeaderActive: "Aktive Warteschlange (Reihenfolge)",
+    queueHeaderAvailable: "Verfügbare Songs (Klicke ➕ zum Hinzufügen)",
+    queueEmpty: "Die Warteschlange ist leer. Klicke rechts auf das ➕ Symbol, um Songs hinzuzufügen.",
+    clearQueue: "Warteschlange leeren",
   },
   en: {
     title: "EQUISOUND",
@@ -115,7 +120,12 @@ const TRANSLATIONS = {
     settingSpotifyFade: "SPOTIFY FADE-IN DURATION (MS)",
     btnReset: "Factory Reset",
     resetConfirm: "Are you sure you want to reset all settings to defaults?",
-    errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs' first."
+    errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs'.",
+    manageQueueTitle: "Manage Queue",
+    queueHeaderActive: "Active Queue (Playback Order)",
+    queueHeaderAvailable: "Available Songs (Click ➕ to Add)",
+    queueEmpty: "The queue is empty. Click the ➕ symbol on the right to add songs.",
+    clearQueue: "Clear Queue",
   }
 };
 
@@ -210,6 +220,7 @@ function App() {
   const [spotifyPlaying, setSpotifyPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [queues, setQueues] = useState<Record<string, string[]>>({});
+  const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
 
   // Load config on startup
   useEffect(() => {
@@ -502,6 +513,34 @@ function App() {
     }
   }
 
+  // Swap items in queue for reordering
+  function moveQueueItem(catId: string, index: number, direction: "up" | "down") {
+    const queue = queues[catId] || [];
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === queue.length - 1) return;
+    
+    const newQueue = [...queue];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    
+    // Swap items
+    const temp = newQueue[index];
+    newQueue[index] = newQueue[targetIndex];
+    newQueue[targetIndex] = temp;
+    
+    handleSetQueue(catId, newQueue);
+  }
+
+  // Override the complete queue
+  async function handleSetQueue(categoryId: string, newQueue: string[]) {
+    try {
+      await invoke("set_queue", { categoryId, newQueue });
+      const updatedQueues = await invoke<Record<string, string[]>>("get_queues");
+      setQueues(updatedQueues);
+    } catch (err) {
+      console.error("Failed to set queue:", err);
+    }
+  }
+
   // Helper to extract clean filename
   function getFileName(path: string): string {
     return path.split(/[/\\]/).pop() || path;
@@ -652,6 +691,17 @@ function App() {
               <div className="tusch-pad-header">
                 <span className="tusch-icon">🏆</span>
                 <span className="tusch-label">{t.tusch}</span>
+                
+                <button
+                  className="btn-pad-queue-manage tusch-queue-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQueueModalCategory("tusch");
+                  }}
+                  title="Warteschlange bearbeiten"
+                >
+                  📋
+                </button>
               </div>
 
               {/* Centered Visual Element */}
@@ -738,6 +788,17 @@ function App() {
                   disabled={config.master_mute}
                 >
                   <span className="pad-label">{t[cat.labelKey as keyof typeof t]}</span>
+
+                  <button
+                    className="btn-pad-queue-manage"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setQueueModalCategory(cat.id);
+                    }}
+                    title="Warteschlange verwalten"
+                  >
+                    📋
+                  </button>
 
                   {/* Centered Visual Element */}
                   <div className="pad-center-content">
@@ -1056,6 +1117,113 @@ function App() {
                 {t.btnReset}
               </button>
               <button className="btn-control" style={{ background: "var(--accent-brand)", color: "#000000" }} onClick={() => setIsSettingsOpen(false)}>
+                {t.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL 3: Warteschlangen-Manager */}
+      {queueModalCategory && config && (
+        <div className="modal-overlay" onClick={() => setQueueModalCategory(null)}>
+          <div className="modal-card queue-manager-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t.manageQueueTitle}: {
+                queueModalCategory === "tusch" 
+                  ? t.tusch 
+                  : t[CATEGORIES_INFO.find(c => c.id === queueModalCategory)?.labelKey as keyof typeof t]
+              }</h2>
+              <button className="btn-close" onClick={() => setQueueModalCategory(null)}>✕</button>
+            </div>
+
+            <div className="modal-body queue-manager-body">
+              {/* Linke Seite: Aktive Warteschlange */}
+              <div className="queue-manager-column active-pane">
+                <h3>{t.queueHeaderActive}</h3>
+                <div className="queue-list-container">
+                  {(!queues[queueModalCategory] || queues[queueModalCategory].length === 0) ? (
+                    <div className="queue-empty-text">{t.queueEmpty}</div>
+                  ) : (
+                    <ul className="managed-queue-list">
+                      {queues[queueModalCategory].map((songPath, idx) => (
+                        <li key={`${songPath}-${idx}`} className="managed-queue-item">
+                          <div style={{ display: "flex", alignItems: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexGrow: 1 }}>
+                            <span className="managed-queue-num">#{idx + 1}</span>
+                            <span className="managed-queue-name" title={songPath}>{getFileName(songPath)}</span>
+                          </div>
+                          <div className="managed-queue-actions">
+                            <button 
+                              disabled={idx === 0} 
+                              onClick={() => moveQueueItem(queueModalCategory, idx, "up")}
+                              title="Nach oben verschieben"
+                            >
+                              ↑
+                            </button>
+                            <button 
+                              disabled={idx === queues[queueModalCategory].length - 1} 
+                              onClick={() => moveQueueItem(queueModalCategory, idx, "down")}
+                              title="Nach unten verschieben"
+                            >
+                              ↓
+                            </button>
+                            <button 
+                              className="btn-dequeue-red"
+                              onClick={() => handleRemoveFromQueue(queueModalCategory, songPath)}
+                              title="Aus Warteschlange entfernen"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {queues[queueModalCategory] && queues[queueModalCategory].length > 0 && (
+                  <button 
+                    className="btn-control btn-clear-queue" 
+                    onClick={() => handleSetQueue(queueModalCategory, [])}
+                  >
+                    🗑️ {t.clearQueue}
+                  </button>
+                )}
+              </div>
+
+              {/* Rechte Seite: Verfügbare Songs */}
+              <div className="queue-manager-column available-pane">
+                <h3>{t.queueHeaderAvailable}</h3>
+                <div className="queue-list-container">
+                  {(!config.categories[queueModalCategory] || config.categories[queueModalCategory].songs.length === 0) ? (
+                    <div className="queue-empty-text">{t.noSongs}</div>
+                  ) : (
+                    <ul className="available-songs-list">
+                      {config.categories[queueModalCategory].songs.map((songPath) => {
+                        const isQueued = (queues[queueModalCategory] || []).includes(songPath);
+                        return (
+                          <li key={songPath} className="available-song-item">
+                            <span className="available-song-name" title={songPath}>{getFileName(songPath)}</span>
+                            <button
+                              className={`btn-add-to-queue-action ${isQueued ? "queued" : ""}`}
+                              onClick={() => handleAddToQueue(queueModalCategory, songPath)}
+                              disabled={isQueued}
+                            >
+                              {isQueued ? "✓" : "➕"}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn-control" 
+                style={{ background: "var(--accent-brand)", color: "#000000" }} 
+                onClick={() => setQueueModalCategory(null)}
+              >
                 {t.close}
               </button>
             </div>
