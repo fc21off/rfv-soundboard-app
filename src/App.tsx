@@ -376,11 +376,6 @@ function App() {
       setConfig(updatedConfig);
       await invoke("mute_all", { mute: newMute });
       await invoke("save_config_cmd", { config: updatedConfig });
-      
-      if (newMute) {
-        setActiveCategory(null);
-        setPlayingSong(null);
-      }
     } catch (err) {
       console.error("Failed to toggle master mute:", err);
     }
@@ -699,7 +694,7 @@ function App() {
             <button
               className={`tusch-pad-btn tusch ${activeCategory === "tusch" ? "playing" : ""}`}
               onClick={() => handleTriggerJingle("tusch")}
-              disabled={config.master_mute}
+              disabled={config.master_mute && activeCategory !== "tusch"}
             >
               <div className="tusch-pad-header">
                 <span className="tusch-icon">🏆</span>
@@ -798,7 +793,7 @@ function App() {
                   key={cat.id}
                   className={`pad-button ${cat.cssClass} ${isPlaying ? "playing" : ""}`}
                   onClick={() => handleTriggerJingle(cat.id)}
-                  disabled={config.master_mute}
+                  disabled={config.master_mute && !isPlaying}
                 >
                   <span className="pad-label">{t[cat.labelKey as keyof typeof t]}</span>
 
