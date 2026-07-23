@@ -48,6 +48,27 @@ impl AudioPlayer {
         Ok(())
     }
 
+    pub fn play_loop(&self, path: &str, volume: f32) -> Result<(), String> {
+        // We do NOT stop_immediate or increment generation because this is a natural loop repetition 
+        // within the same playback session.
+        let file = File::open(path)
+            .map_err(|e| format!("Failed to open file ({}): {}", path, e))?;
+        let reader = BufReader::new(file);
+        let source = Decoder::new(reader)
+            .map_err(|e| format!("Failed to decode audio file: {}", e))?;
+
+        let sink = Sink::try_new(&self.stream_handle)
+            .map_err(|e| format!("Failed to create audio sink: {}", e))?;
+
+        sink.set_volume(volume);
+        sink.append(source);
+
+        let mut current_sink = self.sink.lock().unwrap();
+        *current_sink = Some(Arc::new(sink));
+
+        Ok(())
+    }
+
     pub fn stop_immediate(&self) {
         self.generation.fetch_add(1, Ordering::SeqCst);
         let mut current_sink = self.sink.lock().unwrap();

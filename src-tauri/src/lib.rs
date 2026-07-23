@@ -210,7 +210,15 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                         
                         // If looping is enabled and no new playback occurred, replay the song
                         if config.jingle_loop && generation_clone.load(std::sync::atomic::Ordering::SeqCst) == play_gen {
-                            if let Ok(_) = app_state.player.play(&selected_song_clone, play_vol_clone) {
+                            // Get the current volume of this category from the config (in case it changed during playback)
+                            let current_vol = if let Some(cat) = config.categories.get(&category_id_clone) {
+                                cat.volume
+                            } else {
+                                play_vol_clone
+                            };
+                            let target_vol = if config.master_mute { 0.0 } else { current_vol };
+
+                            if let Ok(_) = app_state.player.play_loop(&selected_song_clone, target_vol) {
                                 std::thread::sleep(Duration::from_millis(200));
                                 continue;
                             }
