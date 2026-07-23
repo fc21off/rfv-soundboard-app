@@ -145,34 +145,61 @@ const TRANSLATIONS = {
   }
 };
 
-interface FaderProps {
+interface FaderChannelProps {
+  label: string;
   value: number; // 0.0 to 1.0
-  onChange: (value: number) => void;
-  onCommit?: (value: number) => void;
   trackColorClass: string;
+  onChange: (vol: number) => void;
+  onCommit: (vol: number) => void;
 }
 
-const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClass }) => {
+const FaderChannel: React.FC<FaderChannelProps> = ({ label, value, trackColorClass, onChange, onCommit }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const dbTextRef = useRef<HTMLSpanElement>(null);
+  const pctTextRef = useRef<HTMLSpanElement>(null);
+
   const isDragging = useRef(false);
   const lastVolRef = useRef(value);
-  const [localValue, setLocalValue] = useState(value);
 
-  // Synchronize localValue with prop value when not dragging (e.g. on reset or fade)
+  // Keep local volume in sync with external resets/changes (e.g. on load, reset, or fade-out)
   useEffect(() => {
     if (!isDragging.current) {
-      setLocalValue(value);
+      updateDOM(value);
     }
   }, [value]);
+
+  const updateDOM = (vol: number) => {
+    lastVolRef.current = vol;
+    const percentage = vol * 100;
+    
+    if (fillRef.current) {
+      fillRef.current.style.height = `${percentage}%`;
+    }
+    if (thumbRef.current) {
+      thumbRef.current.style.bottom = `calc(${percentage}% - 8px)`;
+    }
+    if (dbTextRef.current) {
+      dbTextRef.current.textContent = formatDb(vol);
+    }
+    if (pctTextRef.current) {
+      pctTextRef.current.textContent = `${Math.round(percentage)}%`;
+    }
+  };
 
   const calculateVolume = (clientY: number) => {
     if (!trackRef.current) return 0;
     const rect = trackRef.current.getBoundingClientRect();
     const percentage = 1 - (clientY - rect.top) / rect.height;
     const volume = Math.max(0, Math.min(100, Math.round(percentage * 100))) / 100;
-    lastVolRef.current = volume;
-    setLocalValue(volume);
+    
+    // Update visual DOM elements synchronously for instantaneous responsiveness (0ms lag)
+    updateDOM(volume);
+    
+    // Send updated volume to Tauri backend
     onChange(volume);
+    
     return volume;
   };
 
@@ -189,9 +216,7 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
       isDragging.current = false;
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
-      if (onCommit) {
-        onCommit(lastVolRef.current);
-      }
+      onCommit(lastVolRef.current);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -212,73 +237,14 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
       isDragging.current = false;
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
-      if (onCommit) {
-        onCommit(lastVolRef.current);
-      }
+      onCommit(lastVolRef.current);
     };
 
     document.addEventListener("touchmove", handleTouchMove, { passive: false });
     document.addEventListener("touchend", handleTouchEnd);
   };
 
-  const percentage = localValue * 100;
-
-  return (
-    <div 
-      className={`custom-fader-track ${trackColorClass}`}
-      ref={trackRef}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      style={{ cursor: "ns-resize" }}
-    >
-      <div className="custom-fader-groove">
-        <div 
-          className="custom-fader-fill"
-          style={{ height: `${percentage}%` }}
-        />
-      </div>
-      <div 
-        className="custom-fader-thumb"
-        style={{ bottom: `calc(${percentage}% - 8px)` }}
-      />
-    </div>
-  );
-};
-
-interface FaderChannelProps {
-  label: string;
-  value: number;
-  trackColorClass: string;
-  onChange: (vol: number) => void;
-  onCommit: (vol: number) => void;
-}
-
-const FaderChannel: React.FC<FaderChannelProps> = ({ label, value, trackColorClass, onChange, onCommit }) => {
-  const [localVol, setLocalVol] = useState(value);
-
-  // Keep local volume in sync with external resets/changes
-  useEffect(() => {
-    setLocalVol(value);
-  }, [value]);
-
-  const handleVolumeChange = (vol: number) => {
-    setLocalVol(vol);
-    onChange(vol);
-  };
-
-  const handleVolumeCommit = (vol: number) => {
-    setLocalVol(vol);
-    onCommit(vol);
-  };
-
   // Decibel converter for mixers, linearly mapped to fader scale ticks:
-  // 100% -> 0 dB
-  // 83.3% -> -3 dB
-  // 66.7% -> -6 dB
-  // 50% -> -12 dB
-  // 33.3% -> -24 dB
-  // 16.7% -> -48 dB
-  // 0% -> -oo dB
   function formatDb(vol: number): string {
     const pct = Math.round(vol * 100);
     if (pct <= 0) return "-∞ dB";
@@ -305,25 +271,41 @@ const FaderChannel: React.FC<FaderChannelProps> = ({ label, value, trackColorCla
     }
   }
 
+  const initialPct = value * 100;
+
   return (
     <div className={`mixer-channel ${trackColorClass}`}>
-      <span className="channel-db">{formatDb(localVol)}</span>
+      <span className="channel-db" ref={dbTextRef}>{formatDb(value)}</span>
       <div className="fader-strip">
         <div className="fader-scale">
           <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
         </div>
         <div className="slider-groove-container">
-          <Fader 
-            value={localVol}
-            onChange={handleVolumeChange}
-            onCommit={handleVolumeCommit}
-            trackColorClass={trackColorClass}
-          />
+          <div 
+            className={`custom-fader-track ${trackColorClass}`}
+            ref={trackRef}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            style={{ cursor: "ns-resize" }}
+          >
+            <div className="custom-fader-groove">
+              <div 
+                className="custom-fader-fill"
+                ref={fillRef}
+                style={{ height: `${initialPct}%` }}
+              />
+            </div>
+            <div 
+              className="custom-fader-thumb"
+              ref={thumbRef}
+              style={{ bottom: `calc(${initialPct}% - 8px)` }}
+            />
+          </div>
         </div>
       </div>
       <span className="channel-label">{label}</span>
-      <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
-        {Math.round(localVol * 100)}%
+      <span className="channel-db" ref={pctTextRef} style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
+        {Math.round(initialPct)}%
       </span>
     </div>
   );
