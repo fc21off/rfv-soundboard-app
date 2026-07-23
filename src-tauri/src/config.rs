@@ -24,6 +24,7 @@ pub struct AppConfig {
     pub fade_duration_ms: u32,
     pub spotify_fade_duration_ms: u32,
     pub jingle_loop: bool,
+    pub spotify_auto_fade_in: bool,
     pub categories: HashMap<String, JingleCategory>,
 }
 
@@ -90,6 +91,7 @@ impl Default for AppConfig {
             fade_duration_ms: 1200,
             spotify_fade_duration_ms: 1000,
             jingle_loop: false,
+            spotify_auto_fade_in: true,
             categories,
         }
     }
@@ -152,17 +154,26 @@ pub fn load_config(app: &tauri::AppHandle) -> AppConfig {
     config
 }
 
-// Save config to file
+// Save config to file atomically
 pub fn save_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> {
     let path = get_config_path(app)?;
+    let tmp_path = path.with_extension("json.tmp");
     let serialized = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Serialization error: {}", e))?;
 
-    let mut file = File::create(&path)
-        .map_err(|e| format!("Failed to create config file: {}", e))?;
+    let mut file = File::create(&tmp_path)
+        .map_err(|e| format!("Failed to create tmp config file: {}", e))?;
 
     file.write_all(serialized.as_bytes())
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
+        .map_err(|e| format!("Failed to write tmp config file: {}", e))?;
+
+    file.sync_all()
+        .map_err(|e| format!("Failed to sync tmp config file: {}", e))?;
+    drop(file);
+
+    fs::rename(&tmp_path, &path)
+        .map_err(|e| format!("Failed to replace config file: {}", e))?;
 
     Ok(())
 }
+

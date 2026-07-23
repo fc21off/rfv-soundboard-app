@@ -22,6 +22,7 @@ fn get_process_name(pid: u32) -> Option<String> {
         if let Ok(handle) = handle_res {
             let mut buffer = vec![0u16; 260];
             let len = GetModuleBaseNameW(handle, None, &mut buffer);
+            // GUARANTEED HANDLE CLEANUP: Always close process handle
             let _ = CloseHandle(handle);
             if len > 0 {
                 let name = String::from_utf16_lossy(&buffer[..len as usize]);
@@ -57,6 +58,10 @@ where
     Ok(())
 }
 
+fn is_spotify_process(name: &str) -> bool {
+    name.contains("spotify")
+}
+
 /// Mute or unmute Spotify specifically in the Windows Volume Mixer
 pub fn mute_spotify(mute: bool) -> Result<(), String> {
     run_com_audio_op(|session_enum| unsafe {
@@ -66,7 +71,7 @@ pub fn mute_spotify(mute: bool) -> Result<(), String> {
             let session_control2: IAudioSessionControl2 = session_control.cast()?;
             let pid = session_control2.GetProcessId()?;
             if let Some(name) = get_process_name(pid) {
-                if name.contains("spotify") {
+                if is_spotify_process(&name) {
                     let volume_control: ISimpleAudioVolume = session_control.cast()?;
                     volume_control.SetMute(mute, std::ptr::null())?;
                 }
@@ -85,7 +90,7 @@ pub fn set_spotify_volume(volume: f32) -> Result<(), String> {
             let session_control2: IAudioSessionControl2 = session_control.cast()?;
             let pid = session_control2.GetProcessId()?;
             if let Some(name) = get_process_name(pid) {
-                if name.contains("spotify") {
+                if is_spotify_process(&name) {
                     let volume_control: ISimpleAudioVolume = session_control.cast()?;
                     volume_control.SetMasterVolume(volume, std::ptr::null())?;
                 }
@@ -115,7 +120,7 @@ pub fn is_spotify_active() -> bool {
             let session_control2: IAudioSessionControl2 = session_control.cast()?;
             let pid = session_control2.GetProcessId()?;
             if let Some(name) = get_process_name(pid) {
-                if name.contains("spotify") {
+                if is_spotify_process(&name) {
                     let state = session_control.GetState()?;
                     if state == windows::Win32::Media::Audio::AudioSessionStateActive {
                         active = true;
@@ -130,7 +135,13 @@ pub fn is_spotify_active() -> bool {
 }
 
 /// Fade in Spotify volume from 0.0 to target_volume over a duration
-pub fn fade_in_spotify(target_volume: f32, duration: std::time::Duration) -> Result<(), String> {
+pub fn fade_in_spotify<F>(target_volume: f32, duration: std::time::Duration, is_cancelled: F) -> Result<(), String> 
+where
+    F: Fn() -> bool,
+{
+    // First, ensure Spotify is unmuted in the Windows mixer
+    let _ = mute_spotify(false);
+
     unsafe {
         let _init_res = CoInitializeEx(None, COINIT_MULTITHREADED);
         
@@ -156,7 +167,7 @@ pub fn fade_in_spotify(target_volume: f32, duration: std::time::Duration) -> Res
                 if let Ok(session_control2) = session_control.cast::<IAudioSessionControl2>() {
                     if let Ok(pid) = session_control2.GetProcessId() {
                         if let Some(name) = get_process_name(pid) {
-                            if name.contains("spotify") {
+                            if is_spotify_process(&name) {
                                 if let Ok(volume_control) = session_control.cast::<ISimpleAudioVolume>() {
                                     spotify_volumes.push(volume_control);
                                 }
@@ -181,6 +192,9 @@ pub fn fade_in_spotify(target_volume: f32, duration: std::time::Duration) -> Res
         let steps = 20;
         let step_duration = duration / steps;
         for step in 1..=steps {
+            if is_cancelled() {
+                return Ok(());
+            }
             let current_vol = (step as f32 / steps as f32) * target_volume;
             for vol_control in &spotify_volumes {
                 let _ = vol_control.SetMasterVolume(current_vol, std::ptr::null());
@@ -188,13 +202,16 @@ pub fn fade_in_spotify(target_volume: f32, duration: std::time::Duration) -> Res
             std::thread::sleep(step_duration);
         }
 
-        // Ensure we end exactly at target volume
-        for vol_control in &spotify_volumes {
-            let _ = vol_control.SetMasterVolume(target_volume, std::ptr::null());
+        // Ensure we end exactly at target volume if not cancelled
+        if !is_cancelled() {
+            for vol_control in &spotify_volumes {
+                let _ = vol_control.SetMasterVolume(target_volume, std::ptr::null());
+            }
         }
     }
     Ok(())
 }
+
 
 
 

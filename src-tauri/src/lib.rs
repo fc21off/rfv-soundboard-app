@@ -110,7 +110,7 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         Some(song) => song,
         None => {
             if category.songs.is_empty() {
-                return Err("Keine Lieder in dieser Kategorie hinterlegt. Bitte füge in den Einstellungen Lieder hinzu.".to_string());
+                return Err("Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu.".to_string());
             }
             // Select random song
             let mut rng = rand::thread_rng();
@@ -133,23 +133,41 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         *active_cat = Some(category_id.clone());
     }
 
-    state.player.play(&selected_song, play_vol)?;
+    // Try playing the file, and roll back state if file fails to open/play
+    if let Err(err) = state.player.play(&selected_song, play_vol) {
+        {
+            let mut active_cat = state.active_category.lock().unwrap();
+            *active_cat = None;
+        }
+        if !config.spotify_mute && !config.master_mute {
+            let _ = windows_audio::mute_spotify(false);
+        }
+        return Err(err);
+    }
     
     // Spawn thread to monitor when the song ends and unmute Spotify
     let sink_clone = state.player.get_sink_clone();
+    let generation_clone = state.player.get_generation_clone();
+    let play_gen = state.player.get_current_generation();
     let app_clone = app.clone();
     let selected_song_clone = selected_song.clone();
     let play_vol_clone = play_vol;
+    let category_id_clone = category_id.clone();
+
     std::thread::spawn(move || {
         // Sleep slightly to let the audio start playing
         std::thread::sleep(Duration::from_millis(200));
         loop {
             std::thread::sleep(Duration::from_millis(200));
             
-            // Check if this thread has been superseded by a new jingle play
+            // Check if this thread has been superseded by a new jingle play or stop
+            if generation_clone.load(std::sync::atomic::Ordering::SeqCst) != play_gen {
+                break;
+            }
+            
             if let Some(app_state) = app_clone.try_state::<AppState>() {
                 let active_cat = app_state.active_category.lock().unwrap().clone();
-                if active_cat.as_ref() != Some(&category_id) {
+                if active_cat.as_ref() != Some(&category_id_clone) {
                     break;
                 }
             } else {
@@ -183,10 +201,9 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                     if let Some(app_state) = app_clone.try_state::<AppState>() {
                         let config = app_state.config.lock().unwrap().clone();
                         
-                        // If looping is enabled, replay the song and continue monitoring
-                        if config.jingle_loop {
+                        // If looping is enabled and no new playback occurred, replay the song
+                        if config.jingle_loop && generation_clone.load(std::sync::atomic::Ordering::SeqCst) == play_gen {
                             if let Ok(_) = app_state.player.play(&selected_song_clone, play_vol_clone) {
-                                // Wait for the new playback to start
                                 std::thread::sleep(Duration::from_millis(200));
                                 continue;
                             }
@@ -198,19 +215,28 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                             *active_cat = None;
                         }
 
-                        if !config.spotify_mute && !config.master_mute {
-                            // Only fade in if no other jingle is currently playing
-                            if !app_state.player.is_playing() {
-                                let target_vol = config.spotify_volume;
-                                let fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
-                                let _ = windows_audio::fade_in_spotify(target_vol, fade_duration);
-                            }
+                        if config.spotify_auto_fade_in && !config.spotify_mute && !config.master_mute {
+                            let target_vol = config.spotify_volume;
+                            let fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
+                            
+                            let gen_check = generation_clone.clone();
+                            let app_state_clone = app_clone.clone();
+                            let _ = windows_audio::fade_in_spotify(target_vol, fade_duration, move || {
+                                if gen_check.load(std::sync::atomic::Ordering::SeqCst) != play_gen {
+                                    return true;
+                                }
+                                if let Some(st) = app_state_clone.try_state::<AppState>() {
+                                    let cfg = st.config.lock().unwrap();
+                                    cfg.master_mute || cfg.spotify_mute || !cfg.spotify_auto_fade_in
+                                } else {
+                                    true
+                                }
+                            });
                         }
                     }
                     break;
                 }
                 PlaybackStatus::StoppedManually => {
-                    // Stopped manually: exit immediately. The stopping thread will handle Spotify unmute/fade-in.
                     break;
                 }
             }
@@ -255,7 +281,6 @@ fn set_queue(state: State<'_, AppState>, category_id: String, new_queue: Vec<Str
     Ok(())
 }
 
-
 #[tauri::command]
 fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bool) {
     // Clear active category
@@ -269,30 +294,64 @@ fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bo
     if immediate {
         state.player.stop_immediate();
         
-        // Unmute Spotify in mixer immediately
-        if !config.spotify_mute && !config.master_mute {
+        let gen_now = state.player.get_current_generation();
+        let gen_clone = state.player.get_generation_clone();
+        let app_clone = app.clone();
+
+        // Unmute Spotify in mixer immediately with cancellation check
+        if config.spotify_auto_fade_in && !config.spotify_mute && !config.master_mute {
             let target_vol = config.spotify_volume;
             let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
-            let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration);
+            let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration, move || {
+                if gen_clone.load(std::sync::atomic::Ordering::SeqCst) != gen_now {
+                    return true;
+                }
+                if let Some(st) = app_clone.try_state::<AppState>() {
+                    let cfg = st.config.lock().unwrap();
+                    cfg.master_mute || cfg.spotify_mute || !cfg.spotify_auto_fade_in
+                } else {
+                    true
+                }
+            });
         }
     } else {
         state.player.stop_fade(Duration::from_millis(config.fade_duration_ms as u64));
+        let gen_after_fade = state.player.get_current_generation();
+        let gen_clone = state.player.get_generation_clone();
         
         // Unmute Spotify in mixer after fade duration
-        if !config.spotify_mute && !config.master_mute {
+        if config.spotify_auto_fade_in && !config.spotify_mute && !config.master_mute {
             let target_vol = config.spotify_volume;
             let jingle_fade_duration = Duration::from_millis(config.fade_duration_ms as u64);
             let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
             
             let app_clone = app.clone();
             std::thread::spawn(move || {
-                // Wait for jingle to fade out first
-                std::thread::sleep(jingle_fade_duration);
+                // Wait for jingle fade-out to complete + 50ms buffer
+                std::thread::sleep(jingle_fade_duration + Duration::from_millis(50));
                 
                 // Only fade in Spotify if no other jingle was started in the meantime
+                if gen_clone.load(std::sync::atomic::Ordering::SeqCst) != gen_after_fade {
+                    return;
+                }
+
                 if let Some(app_state) = app_clone.try_state::<AppState>() {
-                    if !app_state.player.is_playing() {
-                        let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration);
+                    let is_cat_active = app_state.active_category.lock().unwrap().is_some();
+                    let cfg = app_state.config.lock().unwrap().clone();
+                    if !is_cat_active && cfg.spotify_auto_fade_in && !cfg.spotify_mute && !cfg.master_mute {
+                        let gen_inner = gen_clone.clone();
+                        let app_inner = app_clone.clone();
+                        let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration, move || {
+                            if gen_inner.load(std::sync::atomic::Ordering::SeqCst) != gen_after_fade {
+                                return true;
+                            }
+                            if let Some(st) = app_inner.try_state::<AppState>() {
+                                let c = st.config.lock().unwrap();
+                                c.master_mute || c.spotify_mute || !c.spotify_auto_fade_in
+                            } else {
+                                true
+                            }
+                        });
                     }
                 }
             });
@@ -311,9 +370,23 @@ fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
         state.player.set_volume(0.0);
         let _ = windows_audio::mute_spotify(true);
     } else {
-        // Restore player volume and Spotify mute states based on config
-        let _ = windows_audio::mute_spotify(config.spotify_mute);
-        state.player.set_volume(0.8); // standard volume fallback
+        // Restore player volume based on the active category if any, else default to 0.8
+        let active_cat_opt = state.active_category.lock().unwrap().clone();
+        let target_vol = if let Some(cat_id) = &active_cat_opt {
+            if let Some(category) = config.categories.get(cat_id) {
+                category.volume
+            } else {
+                0.8
+            }
+        } else {
+            0.8
+        };
+        state.player.set_volume(target_vol);
+
+        // Only unmute Spotify in the mixer if no jingle is currently playing and Spotify is not muted in config
+        if active_cat_opt.is_none() && !config.spotify_mute {
+            let _ = windows_audio::mute_spotify(false);
+        }
     }
     
     Ok(())

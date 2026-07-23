@@ -2,12 +2,14 @@ use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::Duration;
 
 pub struct AudioPlayer {
-    sink: Arc<Mutex<Option<Sink>>>,
+    sink: Arc<Mutex<Option<Arc<Sink>>>>,
     stream_handle: OutputStreamHandle,
+    generation: Arc<AtomicU64>,
     // Keep the stream alive so the audio device remains active
     _stream: OutputStream,
 }
@@ -19,6 +21,7 @@ impl AudioPlayer {
         Ok(Self {
             sink: Arc::new(Mutex::new(None)),
             stream_handle,
+            generation: Arc::new(AtomicU64::new(0)),
             _stream: stream,
         })
     }
@@ -40,12 +43,13 @@ impl AudioPlayer {
         sink.append(source);
 
         let mut current_sink = self.sink.lock().unwrap();
-        *current_sink = Some(sink);
+        *current_sink = Some(Arc::new(sink));
 
         Ok(())
     }
 
     pub fn stop_immediate(&self) {
+        self.generation.fetch_add(1, Ordering::SeqCst);
         let mut current_sink = self.sink.lock().unwrap();
         if let Some(sink) = current_sink.take() {
             sink.stop();
@@ -53,25 +57,36 @@ impl AudioPlayer {
     }
 
     pub fn stop_fade(&self, fade_duration: Duration) {
-        let sink_clone = self.sink.clone();
-        thread::spawn(move || {
-            // Take ownership of the sink so no other thread can modify it while we fade it out
-            let sink_opt = {
-                let mut current_sink = sink_clone.lock().unwrap();
-                current_sink.take()
-            };
+        let current_gen = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
+        let sink_opt = {
+            let current_sink = self.sink.lock().unwrap();
+            current_sink.clone()
+        };
 
+        let generation = self.generation.clone();
+        let sink_mutex = self.sink.clone();
+
+        thread::spawn(move || {
             if let Some(sink) = sink_opt {
                 let start_vol = sink.volume();
                 let steps = 20;
                 let step_duration = fade_duration / steps;
-                
+
                 for i in 1..=steps {
+                    if generation.load(Ordering::SeqCst) != current_gen {
+                        sink.stop();
+                        return;
+                    }
                     let factor = 1.0 - (i as f32 / steps as f32);
                     sink.set_volume(start_vol * factor);
                     thread::sleep(step_duration);
                 }
-                sink.stop();
+
+                if generation.load(Ordering::SeqCst) == current_gen {
+                    sink.stop();
+                    let mut lock = sink_mutex.lock().unwrap();
+                    *lock = None;
+                }
             }
         });
     }
@@ -85,8 +100,16 @@ impl AudioPlayer {
         }
     }
 
-    pub fn get_sink_clone(&self) -> Arc<Mutex<Option<Sink>>> {
+    pub fn get_sink_clone(&self) -> Arc<Mutex<Option<Arc<Sink>>>> {
         self.sink.clone()
+    }
+
+    pub fn get_generation_clone(&self) -> Arc<AtomicU64> {
+        self.generation.clone()
+    }
+
+    pub fn get_current_generation(&self) -> u64 {
+        self.generation.load(Ordering::SeqCst)
     }
 
     pub fn set_volume(&self, volume: f32) {
@@ -96,6 +119,8 @@ impl AudioPlayer {
         }
     }
 }
+
 // Safe to send across threads
 unsafe impl Send for AudioPlayer {}
 unsafe impl Sync for AudioPlayer {}
+

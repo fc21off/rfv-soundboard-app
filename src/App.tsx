@@ -20,6 +20,7 @@ interface AppConfig {
   fade_duration_ms: number;
   spotify_fade_duration_ms: number;
   jingle_loop: boolean;
+  spotify_auto_fade_in?: boolean;
   categories: Record<string, JingleCategory>;
 }
 
@@ -71,6 +72,9 @@ const TRANSLATIONS = {
     settingThemeLight: "Tag-Modus (Hell / Outdoor)",
     settingFade: "FADE-OUT DAUER (MS)",
     settingSpotifyFade: "SPOTIFY EINBLENDE-DAUER (MS)",
+    settingSpotifyAutoFade: "SPOTIFY AUTOMATISCH EINBLENDEN NACH JINGLE",
+    autoFadeActive: "AUTO FADE-IN: AN",
+    autoFadeInactive: "AUTO FADE-IN: AUS",
     btnReset: "Werksreset",
     resetConfirm: "Möchtest du wirklich alle Einstellungen auf Werkseinstellungen zurücksetzen?",
     errorNoSongs: "Keine Lieder in dieser Kategorie hinterlegt. Bitte füge über 'Lieder verwalten' Lieder hinzu.",
@@ -121,6 +125,9 @@ const TRANSLATIONS = {
     settingThemeLight: "Day Mode (Light / Outdoor)",
     settingFade: "FADE-OUT DURATION (MS)",
     settingSpotifyFade: "SPOTIFY FADE-IN DURATION (MS)",
+    settingSpotifyAutoFade: "AUTO FADE-IN SPOTIFY AFTER JINGLE",
+    autoFadeActive: "AUTO FADE-IN: ON",
+    autoFadeInactive: "AUTO FADE-IN: OFF",
     btnReset: "Factory Reset",
     resetConfirm: "Are you sure you want to reset all settings to defaults?",
     errorNoSongs: "No songs available in this category. Please add songs via 'Manage Songs'.",
@@ -137,19 +144,23 @@ const TRANSLATIONS = {
 interface FaderProps {
   value: number; // 0.0 to 1.0
   onChange: (value: number) => void;
+  onCommit?: (value: number) => void;
   trackColorClass: string;
 }
 
-const Fader: React.FC<FaderProps> = ({ value, onChange, trackColorClass }) => {
+const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClass }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const lastVolRef = useRef(value);
 
   const calculateVolume = (clientY: number) => {
-    if (!trackRef.current) return;
+    if (!trackRef.current) return 0;
     const rect = trackRef.current.getBoundingClientRect();
     const percentage = 1 - (clientY - rect.top) / rect.height;
     const volume = Math.max(0, Math.min(100, Math.round(percentage * 100))) / 100;
+    lastVolRef.current = volume;
     onChange(volume);
+    return volume;
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -165,6 +176,9 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, trackColorClass }) => {
       isDragging.current = false;
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      if (onCommit) {
+        onCommit(lastVolRef.current);
+      }
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -185,6 +199,9 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, trackColorClass }) => {
       isDragging.current = false;
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
+      if (onCommit) {
+        onCommit(lastVolRef.current);
+      }
     };
 
     document.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -297,16 +314,18 @@ function App() {
         const isSpotifyActive = await invoke<boolean>("get_spotify_playback_state");
         setSpotifyPlaying(isSpotifyActive);
 
-        // Poll category queues state
-        const latestQueues = await invoke<Record<string, string[]>>("get_queues");
-        setQueues(latestQueues);
+        // Poll category queues state only when queue manager is not open
+        if (!queueModalCategory) {
+          const latestQueues = await invoke<Record<string, string[]>>("get_queues");
+          setQueues(latestQueues);
+        }
       } catch (err) {
         console.error("Playback status poll failed:", err);
       }
     }, 400);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [queueModalCategory]);
 
 
   async function loadConfig() {
@@ -341,15 +360,29 @@ function App() {
   }
 
   // Spotify volume
-  async function handleSpotifyVolumeChange(vol: number) {
+  async function handleSpotifyVolumeChange(vol: number, saveToDisk: boolean = false) {
     if (!config) return;
     try {
       const updatedConfig = { ...config, spotify_volume: vol };
       setConfig(updatedConfig);
       await invoke("set_spotify_mixer_volume", { vol });
-      await invoke("save_config_cmd", { config: updatedConfig });
+      if (saveToDisk) {
+        await invoke("save_config_cmd", { config: updatedConfig });
+      }
     } catch (err) {
       console.error("Failed to set Spotify volume:", err);
+    }
+  }
+
+  // Toggle Spotify Auto Fade-In
+  async function handleToggleAutoFade() {
+    if (!config) return;
+    try {
+      const updatedConfig = { ...config, spotify_auto_fade_in: !(config.spotify_auto_fade_in ?? true) };
+      setConfig(updatedConfig);
+      await saveConfig(updatedConfig);
+    } catch (err) {
+      console.error("Failed to toggle auto fade-in:", err);
     }
   }
 
@@ -429,7 +462,7 @@ function App() {
   }
 
   // Change individual category volume
-  async function handleCategoryVolumeChange(categoryId: string, vol: number) {
+  async function handleCategoryVolumeChange(categoryId: string, vol: number, saveToDisk: boolean = false) {
     if (!config) return;
     try {
       const updatedConfig = { ...config };
@@ -440,7 +473,9 @@ function App() {
         await invoke("set_jingle_volume", { vol });
       }
       
-      await invoke("save_config_cmd", { config: updatedConfig });
+      if (saveToDisk) {
+        await invoke("save_config_cmd", { config: updatedConfig });
+      }
     } catch (err) {
       console.error("Failed to update category volume:", err);
     }
@@ -639,6 +674,14 @@ function App() {
               </button>
 
               <span className="spotify-status-label">{t.spotifyToggle}</span>
+
+              <button 
+                className={`spotify-auto-fade-btn ${config.spotify_auto_fade_in ?? true ? "active" : "inactive"}`}
+                onClick={handleToggleAutoFade}
+                title="Auto Fade-In nach Jingle umschalten"
+              >
+                {config.spotify_auto_fade_in ?? true ? t.autoFadeActive : t.autoFadeInactive}
+              </button>
               
               <label className="spotify-mute-checkbox">
                 <input 
@@ -691,10 +734,19 @@ function App() {
           {/* Soundeffekt / Tusch Panel */}
           <div className="panel-card tusch-card">
             <span className="system-title">{t.tusch}</span>
-            <button
-              className={`tusch-pad-btn tusch ${activeCategory === "tusch" ? "playing" : ""}`}
-              onClick={() => handleTriggerJingle("tusch")}
-              disabled={config.master_mute && activeCategory !== "tusch"}
+            <div
+              className={`tusch-pad-btn tusch ${activeCategory === "tusch" ? "playing" : ""} ${(config.master_mute && activeCategory !== "tusch") ? "disabled" : ""}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (!config.master_mute || activeCategory === "tusch") handleTriggerJingle("tusch");
+              }}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && (!config.master_mute || activeCategory === "tusch")) {
+                  e.preventDefault();
+                  handleTriggerJingle("tusch");
+                }
+              }}
             >
               <div className="tusch-pad-header">
                 <span className="tusch-icon">🏆</span>
@@ -776,7 +828,7 @@ function App() {
               >
                 📋
               </button>
-            </button>
+            </div>
           </div>
         </div>
 
@@ -789,11 +841,20 @@ function App() {
               const isPlaying = activeCategory === cat.id;
 
               return (
-                <button
+                <div
                   key={cat.id}
-                  className={`pad-button ${cat.cssClass} ${isPlaying ? "playing" : ""}`}
-                  onClick={() => handleTriggerJingle(cat.id)}
-                  disabled={config.master_mute && !isPlaying}
+                  className={`pad-button ${cat.cssClass} ${isPlaying ? "playing" : ""} ${(config.master_mute && !isPlaying) ? "disabled" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (!config.master_mute || isPlaying) handleTriggerJingle(cat.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && (!config.master_mute || isPlaying)) {
+                      e.preventDefault();
+                      handleTriggerJingle(cat.id);
+                    }
+                  }}
                 >
                   <span className="pad-label">{t[cat.labelKey as keyof typeof t]}</span>
 
@@ -875,7 +936,7 @@ function App() {
                       {queues[cat.id] && queues[cat.id].length > 0 && ` (${queues[cat.id].length} in Warteschlange)`}
                     </span>
                   </div>
-                </button>
+                </div>
 
               );
             })}
@@ -898,7 +959,8 @@ function App() {
                 <div className="slider-groove-container">
                   <Fader 
                     value={config.spotify_volume}
-                    onChange={handleSpotifyVolumeChange}
+                    onChange={(vol) => handleSpotifyVolumeChange(vol, false)}
+                    onCommit={(vol) => handleSpotifyVolumeChange(vol, true)}
                     trackColorClass="spotify"
                   />
                 </div>
@@ -924,7 +986,8 @@ function App() {
                     <div className="slider-groove-container">
                       <Fader 
                         value={vol}
-                        onChange={(volume) => handleCategoryVolumeChange(cat.id, volume)}
+                        onChange={(volume) => handleCategoryVolumeChange(cat.id, volume, false)}
+                        onCommit={(volume) => handleCategoryVolumeChange(cat.id, volume, true)}
                         trackColorClass={cat.cssClass}
                       />
                     </div>
@@ -1095,6 +1158,7 @@ function App() {
                       fade_duration_ms: 1200,
                       spotify_fade_duration_ms: 1000,
                       jingle_loop: false,
+                      spotify_auto_fade_in: true,
                       categories: {
                         pruefung: { id: "pruefung", name: "Prüfung eröffnen", volume: 0.8, songs: [] },
                         fehlerfrei: { id: "fehlerfrei", name: "Fehlerfrei", volume: 0.8, songs: [] },

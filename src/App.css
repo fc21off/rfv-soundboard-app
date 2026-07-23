@@ -292,6 +292,42 @@ body {
   letter-spacing: 1px;
 }
 
+.spotify-auto-fade-btn {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.spotify-auto-fade-btn.active {
+  background-color: rgba(29, 185, 84, 0.18);
+  color: #1db954;
+  border: 1px solid rgba(29, 185, 84, 0.4);
+}
+
+.spotify-auto-fade-btn.active:hover {
+  background-color: rgba(29, 185, 84, 0.32);
+  transform: scale(1.05);
+}
+
+.spotify-auto-fade-btn.inactive {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-panel);
+}
+
+.spotify-auto-fade-btn.inactive:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-white);
+  transform: scale(1.05);
+}
+
 .spotify-mute-checkbox {
   display: flex;
   align-items: center;
@@ -374,7 +410,16 @@ body {
   text-align: left;
   transition: all 0.2s ease;
   position: relative;
+  user-select: none;
 }
+
+.pad-button.disabled,
+.tusch-pad-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 
 .pad-button::after {
   content: '';
