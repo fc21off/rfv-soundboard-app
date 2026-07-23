@@ -245,6 +245,90 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
   );
 };
 
+interface FaderChannelProps {
+  label: string;
+  value: number;
+  trackColorClass: string;
+  onChange: (vol: number) => void;
+  onCommit: (vol: number) => void;
+}
+
+const FaderChannel: React.FC<FaderChannelProps> = ({ label, value, trackColorClass, onChange, onCommit }) => {
+  const [localVol, setLocalVol] = useState(value);
+
+  // Keep local volume in sync with external resets/changes
+  useEffect(() => {
+    setLocalVol(value);
+  }, [value]);
+
+  const handleVolumeChange = (vol: number) => {
+    setLocalVol(vol);
+    onChange(vol);
+  };
+
+  const handleVolumeCommit = (vol: number) => {
+    setLocalVol(vol);
+    onCommit(vol);
+  };
+
+  // Decibel converter for mixers, linearly mapped to fader scale ticks:
+  // 100% -> 0 dB
+  // 83.3% -> -3 dB
+  // 66.7% -> -6 dB
+  // 50% -> -12 dB
+  // 33.3% -> -24 dB
+  // 16.7% -> -48 dB
+  // 0% -> -oo dB
+  function formatDb(vol: number): string {
+    const pct = Math.round(vol * 100);
+    if (pct <= 0) return "-∞ dB";
+    if (pct === 100) return "0 dB";
+    
+    if (pct >= 83.3) {
+      const db = -3 + ((pct - 83.3) / 16.7) * 3;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 66.7) {
+      const db = -6 + ((pct - 66.7) / 16.6) * 3;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 50.0) {
+      const db = -12 + ((pct - 50.0) / 16.7) * 6;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 33.3) {
+      const db = -24 + ((pct - 33.3) / 16.7) * 12;
+      return `${Math.round(db)} dB`;
+    } else if (pct >= 16.7) {
+      const db = -48 + ((pct - 16.7) / 16.6) * 24;
+      return `${Math.round(db)} dB`;
+    } else {
+      const db = -70 + (pct / 16.7) * 22;
+      return `${Math.round(db)} dB`;
+    }
+  }
+
+  return (
+    <div className={`mixer-channel ${trackColorClass}`}>
+      <span className="channel-db">{formatDb(localVol)}</span>
+      <div className="fader-strip">
+        <div className="fader-scale">
+          <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
+        </div>
+        <div className="slider-groove-container">
+          <Fader 
+            value={localVol}
+            onChange={handleVolumeChange}
+            onCommit={handleVolumeCommit}
+            trackColorClass={trackColorClass}
+          />
+        </div>
+      </div>
+      <span className="channel-label">{label}</span>
+      <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
+        {Math.round(localVol * 100)}%
+      </span>
+    </div>
+  );
+};
+
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [isSongsOpen, setIsSongsOpen] = useState(false);
@@ -767,40 +851,6 @@ function App() {
     return name.substring(0, maxLength - 3) + "...";
   }
 
-  // Decibel converter for mixers, linearly mapped to fader scale ticks:
-  // 100% -> 0 dB
-  // 83.3% -> -3 dB
-  // 66.7% -> -6 dB
-  // 50% -> -12 dB
-  // 33.3% -> -24 dB
-  // 16.7% -> -48 dB
-  // 0% -> -oo dB
-  function formatDb(vol: number): string {
-    const pct = Math.round(vol * 100);
-    if (pct <= 0) return "-∞ dB";
-    if (pct === 100) return "0 dB";
-    
-    if (pct >= 83.3) {
-      const db = -3 + ((pct - 83.3) / 16.7) * 3;
-      return `${Math.round(db)} dB`;
-    } else if (pct >= 66.7) {
-      const db = -6 + ((pct - 66.7) / 16.6) * 3;
-      return `${Math.round(db)} dB`;
-    } else if (pct >= 50.0) {
-      const db = -12 + ((pct - 50.0) / 16.7) * 6;
-      return `${Math.round(db)} dB`;
-    } else if (pct >= 33.3) {
-      const db = -24 + ((pct - 33.3) / 16.7) * 12;
-      return `${Math.round(db)} dB`;
-    } else if (pct >= 16.7) {
-      const db = -48 + ((pct - 16.7) / 16.6) * 24;
-      return `${Math.round(db)} dB`;
-    } else {
-      const db = -70 + (pct / 16.7) * 22;
-      return `${Math.round(db)} dB`;
-    }
-  }
-
 
   if (!config) {
     return (
@@ -1144,26 +1194,13 @@ function App() {
           
           <div className="mixer-board">
             {/* Spotify Channel */}
-            <div className="mixer-channel spotify">
-              <span className="channel-db">{formatDb(config.spotify_volume)}</span>
-              <div className="fader-strip">
-                <div className="fader-scale">
-                  <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
-                </div>
-                <div className="slider-groove-container">
-                  <Fader 
-                    value={config.spotify_volume}
-                    onChange={(vol) => handleSpotifyVolumeChange(vol, false)}
-                    onCommit={(vol) => handleSpotifyVolumeChange(vol, true)}
-                    trackColorClass="spotify"
-                  />
-                </div>
-              </div>
-              <span className="channel-label">{t.spotifyLabel}</span>
-              <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
-                {Math.round(config.spotify_volume * 100)}%
-              </span>
-            </div>
+            <FaderChannel
+              label={t.spotifyLabel}
+              value={config.spotify_volume}
+              trackColorClass="spotify"
+              onChange={(vol) => handleSpotifyVolumeChange(vol, false)}
+              onCommit={(vol) => handleSpotifyVolumeChange(vol, true)}
+            />
 
             {/* 4 Jingle Channels */}
             {CATEGORIES_INFO.map((cat) => {
@@ -1171,26 +1208,14 @@ function App() {
               const vol = categoryData?.volume ?? 0.8;
 
               return (
-                <div key={cat.id} className={`mixer-channel ${cat.cssClass}`}>
-                  <span className="channel-db">{formatDb(vol)}</span>
-                  <div className="fader-strip">
-                    <div className="fader-scale">
-                      <span>0</span><span>-3</span><span>-6</span><span>-12</span><span>-24</span><span>-48</span><span>-oo</span>
-                    </div>
-                    <div className="slider-groove-container">
-                      <Fader 
-                        value={vol}
-                        onChange={(volume) => handleCategoryVolumeChange(cat.id, volume, false)}
-                        onCommit={(volume) => handleCategoryVolumeChange(cat.id, volume, true)}
-                        trackColorClass={cat.cssClass}
-                      />
-                    </div>
-                  </div>
-                  <span className="channel-label">{t[cat.labelKey as keyof typeof t]}</span>
-                  <span className="channel-db" style={{ fontSize: "0.65rem", padding: "1px 2px" }}>
-                    {Math.round(vol * 100)}%
-                  </span>
-                </div>
+                <FaderChannel
+                  key={cat.id}
+                  label={t[cat.labelKey as keyof typeof t]}
+                  value={vol}
+                  trackColorClass={cat.cssClass}
+                  onChange={(volume) => handleCategoryVolumeChange(cat.id, volume, false)}
+                  onCommit={(volume) => handleCategoryVolumeChange(cat.id, volume, true)}
+                />
               );
             })}
 
