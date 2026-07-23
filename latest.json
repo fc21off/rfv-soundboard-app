@@ -1,11 +1,11 @@
 {
-  "version": "2.2.1",
-  "notes": "Integrierter Auto-Updater und Relaunch-Plugin.",
+  "version": "2.2.2",
+  "notes": "Escape-Taste bricht laufenden Jingle ab. Tastatur-Shortcut hinzugefügt.",
   "pub_date": "2026-07-24T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYWcyRHA1K2R5QThTcWszUG4zYnU0Nlo0RjFEd2JnQldOTThQNXZMb2FGcE8wdGdqNmd5eTY2WmJadGhPR1R4K3o4Smg0a1pCenlRQXJDaGc1dFdXNHcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0ODQ5MDA3CWZpbGU6RXF1aVNvdW5kXzIuMi4xX3g2NF9lbi1VUy5tc2kKay9ESWcxdkpldllOaitmL3BQVFRvcEphOWNpazJzN1BYZE1mRzBDT1ZqRy92N293L2ZCY2MxNXZBVEEwdGszRjh1K2FOTzErWEhOMHdsRUdiY0VSQnc9PQo=",
-      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.2.1/EquiSound_2.2.1_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYXJjYVkreXpwWnZrWjBlUWg0Q2F2aEl2blFJUWRMM0w4ZkJmYzJIN29zc1VUMjhxRXJVZkRKOG8ySXo1a0NuTHBlWFo3bUVwUW9QTmtERnY2OWVYeWdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0ODQ5NjQxCWZpbGU6RXF1aVNvdW5kXzIuMi4yX3g2NF9lbi1VUy5tc2kKb0VBTmVDL3B4anJmZ2hnVE5rakhQb1B4OWtLeHBQTHdmclRIL3g1UThpRXZXKzlVUmNaK2tLVGhCYnFqOEVoWFpXRFNOUUpJYlBjb2lPdkUyYSszQ3c9PQo=",
+      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.2.2/EquiSound_2.2.2_x64_en-US.msi"
     }
   }
 }

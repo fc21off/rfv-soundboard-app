@@ -46,7 +46,7 @@ const TRANSLATIONS = {
     spotifyMute: "Stumm (Mute)",
     masterMute: "ALLE SOUNDS AUS (MUTE)",
     masterUnmute: "CONSOLE AKTIVIEREN",
-    stopJingle: "STOP ACTIVE JINGLE",
+    stopJingle: "STOP ACTIVE JINGLE (ESC)",
     mixerTitle: "RUNDFUNK-MISCHPULT",
     spotifyLabel: "SPOTIFY",
     pruefung: "Prüfung eröffnen",
@@ -110,7 +110,7 @@ const TRANSLATIONS = {
     spotifyMute: "Mute Spotify",
     masterMute: "MUTE ALL SOUNDS",
     masterUnmute: "UNMUTE CONSOLE",
-    stopJingle: "STOP ACTIVE JINGLE",
+    stopJingle: "STOP ACTIVE JINGLE (ESC)",
     mixerTitle: "BROADCAST MIXER",
     spotifyLabel: "SPOTIFY",
     pruefung: "Open Class",
@@ -583,6 +583,16 @@ function App() {
         } catch (err) {
           console.error("Fullscreen keyboard toggle failed:", err);
           setErrorMessage("F11 Fullscreen Error: " + String(err));
+        }
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        try {
+          await invoke("stop_current_jingle", { immediate: true });
+          setActiveCategory(null);
+          setPlayingSong(null);
+        } catch (err) {
+          console.error("Escape key stop failed:", err);
         }
       }
     };
