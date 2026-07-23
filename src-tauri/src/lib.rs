@@ -36,7 +36,7 @@ fn save_config_cmd(app: AppHandle, state: State<'_, AppState>, config: AppConfig
     // Apply changes if Spotify mute/volume changed
     if local_config.spotify_mute != config.spotify_mute {
         let is_jingle_active = state.active_category.lock().unwrap().is_some();
-        if !config.spotify_mute && is_jingle_active {
+        if !config.spotify_mute && (is_jingle_active || config.master_mute) {
             // Keep muted in the mixer for now; the thread or stop event will unmute it later.
         } else {
             let _ = windows_audio::mute_spotify(config.spotify_mute);
@@ -76,8 +76,9 @@ fn set_spotify_mixer_volume(vol: f32) -> Result<(), String> {
 
 #[tauri::command]
 fn set_spotify_mixer_mute(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
+    let config = state.config.lock().unwrap();
     let is_jingle_active = state.active_category.lock().unwrap().is_some();
-    if !mute && is_jingle_active {
+    if !mute && (is_jingle_active || config.master_mute) {
         // Keep muted in the mixer for now; the thread or stop event will unmute it later.
         Ok(())
     } else {
