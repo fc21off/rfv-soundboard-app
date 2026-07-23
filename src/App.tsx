@@ -156,6 +156,14 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
   const trackRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const lastVolRef = useRef(value);
+  const [localValue, setLocalValue] = useState(value);
+
+  // Synchronize localValue with prop value when not dragging (e.g. on reset or fade)
+  useEffect(() => {
+    if (!isDragging.current) {
+      setLocalValue(value);
+    }
+  }, [value]);
 
   const calculateVolume = (clientY: number) => {
     if (!trackRef.current) return 0;
@@ -163,6 +171,7 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
     const percentage = 1 - (clientY - rect.top) / rect.height;
     const volume = Math.max(0, Math.min(100, Math.round(percentage * 100))) / 100;
     lastVolRef.current = volume;
+    setLocalValue(volume);
     onChange(volume);
     return volume;
   };
@@ -212,7 +221,7 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, onCommit, trackColorClas
     document.addEventListener("touchend", handleTouchEnd);
   };
 
-  const percentage = value * 100;
+  const percentage = localValue * 100;
 
   return (
     <div 
@@ -248,6 +257,58 @@ function App() {
   const [queues, setQueues] = useState<Record<string, string[]>>({});
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
   const [lockedQueues, setLockedQueues] = useState<string[]>([]);
+
+  // Throttled volume IPC handler to avoid saturating Tauri IPC channel
+  const spotifyVolumeLock = useRef(false);
+  const spotifyVolumePending = useRef<number | null>(null);
+
+  const sendSpotifyVolumeToTauri = async (vol: number) => {
+    if (spotifyVolumeLock.current) {
+      spotifyVolumePending.current = vol;
+      return;
+    }
+    spotifyVolumeLock.current = true;
+    try {
+      await invoke("set_spotify_mixer_volume", { vol });
+    } catch (err) {
+      console.error(err);
+    }
+    spotifyVolumeLock.current = false;
+    if (spotifyVolumePending.current !== null) {
+      const nextVol = spotifyVolumePending.current;
+      spotifyVolumePending.current = null;
+      sendSpotifyVolumeToTauri(nextVol);
+    }
+  };
+
+  const activeCategoryRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeCategoryRef.current = activeCategory;
+  }, [activeCategory]);
+
+  const categoryVolumeLock = useRef<Record<string, boolean>>({});
+  const categoryVolumePending = useRef<Record<string, number | null>>({});
+
+  const sendCategoryVolumeToTauri = async (categoryId: string, vol: number) => {
+    if (categoryVolumeLock.current[categoryId]) {
+      categoryVolumePending.current[categoryId] = vol;
+      return;
+    }
+    categoryVolumeLock.current[categoryId] = true;
+    try {
+      if (activeCategoryRef.current === categoryId) {
+        await invoke("set_jingle_volume", { vol });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    categoryVolumeLock.current[categoryId] = false;
+    if (categoryVolumePending.current[categoryId] !== undefined && categoryVolumePending.current[categoryId] !== null) {
+      const nextVol = categoryVolumePending.current[categoryId]!;
+      categoryVolumePending.current[categoryId] = null;
+      sendCategoryVolumeToTauri(categoryId, nextVol);
+    }
+  };
 
   async function handleToggleQueueLock(categoryId: string) {
     try {
@@ -474,7 +535,7 @@ function App() {
     try {
       const updatedConfig = { ...config, spotify_volume: vol };
       setConfig(updatedConfig);
-      await invoke("set_spotify_mixer_volume", { vol });
+      sendSpotifyVolumeToTauri(vol);
       if (saveToDisk) {
         await invoke("save_config_cmd", { config: updatedConfig });
       }
@@ -578,9 +639,7 @@ function App() {
       updatedConfig.categories[categoryId].volume = vol;
       setConfig(updatedConfig);
       
-      if (activeCategory === categoryId) {
-        await invoke("set_jingle_volume", { vol });
-      }
+      sendCategoryVolumeToTauri(categoryId, vol);
       
       if (saveToDisk) {
         await invoke("save_config_cmd", { config: updatedConfig });
