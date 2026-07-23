@@ -660,6 +660,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 
@@ -1664,4 +1668,31 @@ body {
   background-color: rgba(203, 178, 106, 0.2) !important;
   color: #cbb26a !important;
 }
+
+/* Song Duration & Remaining Time Styles */
+.remaining-time-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-block;
+  font-family: monospace;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  letter-spacing: 0.5px;
+}
+
+.song-duration-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  margin-left: auto;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
 

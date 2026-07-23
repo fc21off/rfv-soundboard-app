@@ -243,10 +243,7 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         }
     });
     
-    Ok(std::path::Path::new(&selected_song)
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| selected_song.clone()))
+    Ok(selected_song)
 }
 
 #[tauri::command]
@@ -412,6 +409,31 @@ fn get_spotify_playback_state() -> bool {
     windows_audio::is_spotify_active()
 }
 
+#[tauri::command]
+fn get_song_duration(path: String) -> Result<f64, String> {
+    let file = std::fs::File::open(&path)
+        .map_err(|e| format!("Failed to open file: {}", e))?;
+    let reader = std::io::BufReader::new(file);
+    let source = rodio::Decoder::new(reader)
+        .map_err(|e| format!("Failed to decode audio file: {}", e))?;
+    
+    use rodio::Source;
+    if let Some(duration) = source.total_duration() {
+        Ok(duration.as_secs_f64())
+    } else {
+        // Fallback: decode the entire file and count the samples
+        let sample_rate = source.sample_rate() as f64;
+        let channels = source.channels() as f64;
+        if sample_rate > 0.0 && channels > 0.0 {
+            let sample_count = source.count() as f64;
+            let duration_secs = sample_count / (channels * sample_rate);
+            Ok(duration_secs)
+        } else {
+            Err("Unknown sample rate or channels".to_string())
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -447,6 +469,7 @@ pub fn run() {
             get_active_category,
             set_jingle_volume,
             get_spotify_playback_state,
+            get_song_duration,
             add_to_queue,
             remove_from_queue,
             get_queues,

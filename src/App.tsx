@@ -243,11 +243,98 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [queues, setQueues] = useState<Record<string, string[]>>({});
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
+  
+  const [songDurations, setSongDurations] = useState<Record<string, number>>({});
+  const [jingleElapsed, setJingleElapsed] = useState<number>(0);
+  const fetchedPathsRef = useRef<Set<string>>(new Set());
+
+  // Helper to format seconds to mm:ss
+  function formatDuration(seconds: number | undefined | null): string {
+    if (seconds === undefined || seconds === null) return "...";
+    if (seconds < 0) return "n/a";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  const getRemainingTimeStr = () => {
+    if (!playingSong || playingSong === "...") return "";
+    const duration = songDurations[playingSong];
+    if (!duration || duration <= 0) return "";
+    const remaining = Math.max(0, duration - jingleElapsed);
+    return `-${formatDuration(remaining)}`;
+  };
 
   // Load config on startup
   useEffect(() => {
     loadConfig();
   }, []);
+
+  // Fetch durations for all known songs
+  useEffect(() => {
+    if (!config) return;
+    const paths = new Set<string>();
+    
+    // Collect paths from categories
+    Object.values(config.categories).forEach((cat) => {
+      if (cat.songs) {
+        cat.songs.forEach((s) => paths.add(s));
+      }
+    });
+
+    // Collect paths from queues
+    Object.values(queues).forEach((q) => {
+      if (q) {
+        q.forEach((s) => paths.add(s));
+      }
+    });
+
+    // Collect currently playing
+    if (playingSong && playingSong !== "...") {
+      paths.add(playingSong);
+    }
+
+    paths.forEach(async (path) => {
+      if (!fetchedPathsRef.current.has(path)) {
+        fetchedPathsRef.current.add(path);
+        try {
+          const duration = await invoke<number>("get_song_duration", { path });
+          setSongDurations((prev) => ({ ...prev, [path]: duration }));
+        } catch (err) {
+          console.error("Failed to fetch duration for:", path, err);
+          setSongDurations((prev) => ({ ...prev, [path]: -1 }));
+        }
+      }
+    });
+  }, [config, queues, playingSong]);
+
+  // Track elapsed time for active jingle playing (and handle loop wrapping)
+  useEffect(() => {
+    if (!activeCategory || !playingSong || playingSong === "...") {
+      setJingleElapsed(0);
+      return;
+    }
+
+    setJingleElapsed(0);
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsedSec = (Date.now() - startTime) / 1000;
+      
+      const duration = songDurations[playingSong];
+      if (duration && duration > 0) {
+        if (config?.jingle_loop) {
+          setJingleElapsed(elapsedSec % duration);
+        } else {
+          setJingleElapsed(Math.min(elapsedSec, duration));
+        }
+      } else {
+        setJingleElapsed(elapsedSec);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [activeCategory, playingSong, config?.jingle_loop, songDurations]);
 
   // Fullscreen keyboard listener (F11) and state check on mount
   useEffect(() => {
@@ -583,6 +670,22 @@ function App() {
     return path.split(/[/\\]/).pop() || path;
   }
 
+  // Truncate filename keeping extension if possible
+  function truncateFileName(path: string, maxLength: number = 25): string {
+    const name = getFileName(path);
+    if (name.length <= maxLength) return name;
+    const dotIndex = name.lastIndexOf(".");
+    if (dotIndex !== -1 && name.length - dotIndex <= 5) {
+      const ext = name.substring(dotIndex);
+      const base = name.substring(0, dotIndex);
+      const allowedBaseLength = maxLength - ext.length - 3;
+      if (allowedBaseLength > 3) {
+        return base.substring(0, allowedBaseLength) + "..." + ext;
+      }
+    }
+    return name.substring(0, maxLength - 3) + "...";
+  }
+
   // Decibel converter for mixers, linearly mapped to fader scale ticks:
   // 100% -> 0 dB
   // 83.3% -> -3 dB
@@ -767,8 +870,13 @@ function App() {
                       <span className="bar bar7"></span>
                     </div>
                     <div className="active-song-name">
-                      {playingSong ? getFileName(playingSong) : "..."}
+                      {playingSong ? truncateFileName(playingSong, 38) : "..."}
                     </div>
+                    {playingSong && playingSong !== "..." && getRemainingTimeStr() !== "" && (
+                      <div className="remaining-time-badge">
+                        {getRemainingTimeStr()}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   (queues["tusch"] && queues["tusch"].length > 0) ? (
@@ -777,7 +885,7 @@ function App() {
                       {queues["tusch"].slice(0, 2).map((songPath, idx) => (
                         <div key={songPath} className="pad-queue-item">
                           <span className="queue-num">#{idx + 1}</span>
-                          <span className="queue-name" title={songPath}>{getFileName(songPath)}</span>
+                          <span className="queue-name" title={songPath}>{truncateFileName(songPath, 24)}</span>
                           <button 
                             className="btn-dequeue-mini" 
                             onClick={(e) => {
@@ -883,8 +991,13 @@ function App() {
                           <span className="bar bar7"></span>
                         </div>
                         <div className="active-song-name">
-                          {playingSong ? getFileName(playingSong) : "..."}
+                          {playingSong ? truncateFileName(playingSong, 38) : "..."}
                         </div>
+                        {playingSong && playingSong !== "..." && getRemainingTimeStr() !== "" && (
+                          <div className="remaining-time-badge">
+                            {getRemainingTimeStr()}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       (queues[cat.id] && queues[cat.id].length > 0) ? (
@@ -893,7 +1006,7 @@ function App() {
                           {queues[cat.id].slice(0, 2).map((songPath, idx) => (
                             <div key={songPath} className="pad-queue-item">
                               <span className="queue-num">#{idx + 1}</span>
-                              <span className="queue-name" title={songPath}>{getFileName(songPath)}</span>
+                              <span className="queue-name" title={songPath}>{truncateFileName(songPath, 24)}</span>
                               <button 
                                 className="btn-dequeue-mini" 
                                 onClick={(e) => {
@@ -1043,7 +1156,10 @@ function App() {
                         ) : (
                           songs.map((song) => (
                             <li key={song} className="song-item">
-                              <span className="song-name" title={song}>{getFileName(song)}</span>
+                              <span className="song-name" title={song}>{truncateFileName(song, 30)}</span>
+                              <span className="song-duration-label">
+                                {formatDuration(songDurations[song])}
+                              </span>
                               <button className="btn-remove-song" onClick={() => handleRemoveSong(cat.id, song)}>✕</button>
                             </li>
                           ))
@@ -1207,7 +1323,10 @@ function App() {
                         <li key={`${songPath}-${idx}`} className="managed-queue-item">
                           <div style={{ display: "flex", alignItems: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexGrow: 1 }}>
                             <span className="managed-queue-num">#{idx + 1}</span>
-                            <span className="managed-queue-name" title={songPath}>{getFileName(songPath)}</span>
+                            <span className="managed-queue-name" title={songPath}>{truncateFileName(songPath, 30)}</span>
+                            <span className="song-duration-label">
+                              {formatDuration(songDurations[songPath])}
+                            </span>
                           </div>
                           <div className="managed-queue-actions">
                             <button 
@@ -1259,7 +1378,10 @@ function App() {
                         const isQueued = (queues[queueModalCategory] || []).includes(songPath);
                         return (
                           <li key={songPath} className="available-song-item">
-                            <span className="available-song-name" title={songPath}>{getFileName(songPath)}</span>
+                            <span className="available-song-name" title={songPath}>{truncateFileName(songPath, 30)}</span>
+                            <span className="song-duration-label" style={{ marginRight: "8px" }}>
+                              {formatDuration(songDurations[songPath])}
+                            </span>
                             <button
                               className={`btn-add-to-queue-action ${isQueued ? "queued" : ""}`}
                               onClick={() => handleAddToQueue(queueModalCategory, songPath)}
