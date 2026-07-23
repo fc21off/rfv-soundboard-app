@@ -470,6 +470,8 @@ fn get_queue_locks(state: State<'_, AppState>) -> Vec<String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Load config or use default
             let config = config::load_config(&app.handle());

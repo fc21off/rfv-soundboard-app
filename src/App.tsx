@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 // import rfvLogo from "./assets/rfv_logo.jpg"; // Kept in project for future use
 import "./App.css";
 
@@ -87,6 +89,15 @@ const TRANSLATIONS = {
     loopInactive: "JINGLE-LOOP: INAKTIV",
     queueLockActive: "WARTESCHLANGEN-SPERRE: AKTIV",
     queueLockInactive: "WARTESCHLANGEN-SPERRE: INAKTIV",
+    updateTitle: "SOFTWARE-UPDATE",
+    updateBtnCheck: "Nach Updates suchen",
+    updateChecking: "Prüfe auf Updates...",
+    updateUpToDate: "Software ist auf dem neuesten Stand.",
+    updateAvailable: "Update verfügbar!",
+    updateBtnInstall: "Jetzt installieren & neu starten",
+    updateDownloading: "Wird heruntergeladen...",
+    updateInstalling: "Wird installiert...",
+    updateFailed: "Fehler beim Update.",
   },
   en: {
     title: "EQUISOUND",
@@ -142,6 +153,15 @@ const TRANSLATIONS = {
     loopInactive: "JINGLE LOOP: INACTIVE",
     queueLockActive: "QUEUE LOCK: ACTIVE",
     queueLockInactive: "QUEUE LOCK: INACTIVE",
+    updateTitle: "SOFTWARE UPDATE",
+    updateBtnCheck: "Check for Updates",
+    updateChecking: "Checking for updates...",
+    updateUpToDate: "Software is up to date.",
+    updateAvailable: "Update available!",
+    updateBtnInstall: "Install now & restart",
+    updateDownloading: "Downloading...",
+    updateInstalling: "Installing...",
+    updateFailed: "Update failed.",
   }
 };
 
@@ -323,6 +343,74 @@ function App() {
   const [queues, setQueues] = useState<Record<string, string[]>>({});
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
   const [lockedQueues, setLockedQueues] = useState<string[]>([]);
+
+  // Update state variables
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'upToDate' | 'available' | 'downloading' | 'installing' | 'failed'>('idle');
+  const [updateProgress, setUpdateProgress] = useState<number | null>(null);
+  const [newVersion, setNewVersion] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [updateInstance, setUpdateInstance] = useState<any>(null);
+
+  const handleCheckForUpdates = async () => {
+    setUpdateStatus('checking');
+    setUpdateError(null);
+    try {
+      const update = await check();
+      if (update) {
+        setNewVersion(update.version);
+        setUpdateStatus('available');
+        setUpdateInstance(update);
+      } else {
+        setUpdateStatus('upToDate');
+      }
+    } catch (err: any) {
+      console.error("Update check failed:", err);
+      setUpdateStatus('failed');
+      setUpdateError(String(err));
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!updateInstance) return;
+    setUpdateStatus('downloading');
+    setUpdateProgress(0);
+    try {
+      let downloaded = 0;
+      let contentLength = 0;
+      await updateInstance.downloadAndInstall((event: any) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength || 0;
+            setUpdateStatus('downloading');
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            if (contentLength > 0) {
+              setUpdateProgress(Math.round((downloaded / contentLength) * 100));
+            }
+            break;
+          case 'Finished':
+            setUpdateStatus('installing');
+            break;
+        }
+      });
+      
+      // Delay for UI feedback
+      setTimeout(async () => {
+        try {
+          await relaunch();
+        } catch (relaunchErr) {
+          console.error("Relaunch failed:", relaunchErr);
+          setUpdateStatus('failed');
+          setUpdateError("Relaunch failed. Please restart the app manually.");
+        }
+      }, 1000);
+    } catch (err: any) {
+      console.error("Download/Install failed:", err);
+      setUpdateStatus('failed');
+      setUpdateError(String(err));
+    }
+  };
 
   // Throttled volume IPC handler to avoid saturating Tauri IPC channel
   const spotifyVolumeLock = useRef(false);
@@ -1344,6 +1432,93 @@ function App() {
                   onMouseUp={() => saveConfig(config)}
                   style={{ accentColor: "var(--accent-brand)", cursor: "pointer" }}
                 />
+              </div>
+              
+              {/* Update Section */}
+              <div style={{ marginTop: "20px", borderTop: "1px solid var(--border-color, #444)", paddingTop: "15px" }}>
+                <h3 style={{ fontSize: "14px", color: "#aaa", marginBottom: "10px", letterSpacing: "1px", textTransform: "uppercase" }}>
+                  {t.updateTitle}
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  {updateStatus === "idle" && (
+                    <button 
+                      className="btn-control" 
+                      style={{ background: "transparent", color: "#ffffff", border: "1px solid #444" }}
+                      onClick={handleCheckForUpdates}
+                    >
+                      🔄 {t.updateBtnCheck}
+                    </button>
+                  )}
+                  {updateStatus === "checking" && (
+                    <span style={{ fontSize: "14px", color: "#aaa" }}>
+                      ⏳ {t.updateChecking}
+                    </span>
+                  )}
+                  {updateStatus === "upToDate" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontSize: "14px", color: "#22c55e" }}>
+                        ✅ {t.updateUpToDate}
+                      </span>
+                      <button 
+                        className="btn-control" 
+                        style={{ padding: "4px 8px", fontSize: "12px", height: "auto" }}
+                        onClick={handleCheckForUpdates}
+                      >
+                        {t.updateBtnCheck}
+                      </button>
+                    </div>
+                  )}
+                  {updateStatus === "available" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "14px", color: "var(--accent-brand)" }}>
+                        💡 {t.updateAvailable} (v{newVersion})
+                      </span>
+                      <button 
+                        className="btn-control" 
+                        style={{ background: "var(--accent-brand)", color: "#000000", border: "none" }}
+                        onClick={handleInstallUpdate}
+                      >
+                        📥 {t.updateBtnInstall}
+                      </button>
+                    </div>
+                  )}
+                  {updateStatus === "downloading" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "5px", width: "100%" }}>
+                      <span style={{ fontSize: "14px", color: "#aaa" }}>
+                        📥 {t.updateDownloading} {updateProgress !== null ? `${updateProgress}%` : ""}
+                      </span>
+                      <div style={{ width: "100%", height: "6px", background: "#333", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ width: `${updateProgress || 0}%`, height: "100%", background: "var(--accent-brand)", transition: "width 0.2s ease" }}></div>
+                      </div>
+                    </div>
+                  )}
+                  {updateStatus === "installing" && (
+                    <span style={{ fontSize: "14px", color: "var(--accent-brand)" }}>
+                      ⚙️ {t.updateInstalling}
+                    </span>
+                  )}
+                  {updateStatus === "failed" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "14px", color: "#ef4444" }}>
+                          ❌ {t.updateFailed}
+                        </span>
+                        <button 
+                          className="btn-control" 
+                          style={{ padding: "4px 8px", fontSize: "12px", height: "auto" }}
+                          onClick={handleCheckForUpdates}
+                        >
+                          {t.updateBtnCheck}
+                        </button>
+                      </div>
+                      {updateError && (
+                        <span style={{ fontSize: "11px", color: "#ef4444", wordBreak: "break-all" }}>
+                          {updateError}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
