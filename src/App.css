@@ -1452,10 +1452,22 @@ body {
 .queue-manager-column h3 {
   font-size: 0.9rem;
   margin-top: 0;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
   color: var(--text-white);
+}
+
+.queue-pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  width: 100%;
+}
+
+.app-container.light .queue-pane-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .queue-list-container {
@@ -1694,5 +1706,63 @@ body {
   margin-right: 8px;
   flex-shrink: 0;
 }
+/* Modal Header Queue Lock Badge Button */
+.btn-modal-lock-queue {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-lock-queue:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-brand);
+}
+
+.btn-modal-lock-queue.active {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.25);
+}
+
+.app-container.light .btn-modal-lock-queue {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #cbd5e1;
+  color: var(--text-muted);
+}
+
+.app-container.light .btn-modal-lock-queue:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-brand);
+}
+
+.app-container.light .btn-modal-lock-queue.active {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #dc2626 !important;
+}
+
+/* Highlight Locked Topmost Items */
+.pad-queue-item.first-locked {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.15);
+}
+
+.managed-queue-item.first-locked {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.15);
+}
+
 
 

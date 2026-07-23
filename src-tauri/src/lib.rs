@@ -17,6 +17,7 @@ pub struct AppState {
     pub config: Mutex<AppConfig>,
     pub queues: Mutex<std::collections::HashMap<String, Vec<String>>>,
     pub active_category: Mutex<Option<String>>,
+    pub queue_locks: Mutex<std::collections::HashSet<String>>,
 }
 
 #[tauri::command]
@@ -96,9 +97,14 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
         
     // Determine the song to play: check queue first, otherwise random
     let mut queues = state.queues.lock().unwrap();
+    let is_locked = state.queue_locks.lock().unwrap().contains(&category_id);
     let queued_song = if let Some(queue) = queues.get_mut(&category_id) {
         if !queue.is_empty() {
-            Some(queue.remove(0))
+            if is_locked {
+                Some(queue[0].clone())
+            } else {
+                Some(queue.remove(0))
+            }
         } else {
             None
         }
@@ -434,6 +440,23 @@ fn get_song_duration(path: String) -> Result<f64, String> {
     }
 }
 
+#[tauri::command]
+fn toggle_queue_lock(state: State<'_, AppState>, category_id: String) -> bool {
+    let mut locks = state.queue_locks.lock().unwrap();
+    if locks.contains(&category_id) {
+        locks.remove(&category_id);
+        false
+    } else {
+        locks.insert(category_id);
+        true
+    }
+}
+
+#[tauri::command]
+fn get_queue_locks(state: State<'_, AppState>) -> Vec<String> {
+    state.queue_locks.lock().unwrap().iter().cloned().collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -451,6 +474,7 @@ pub fn run() {
                 config: Mutex::new(config),
                 queues: Mutex::new(std::collections::HashMap::new()),
                 active_category: Mutex::new(None),
+                queue_locks: Mutex::new(std::collections::HashSet::new()),
             });
             
             Ok(())
@@ -470,6 +494,8 @@ pub fn run() {
             set_jingle_volume,
             get_spotify_playback_state,
             get_song_duration,
+            toggle_queue_lock,
+            get_queue_locks,
             add_to_queue,
             remove_from_queue,
             get_queues,

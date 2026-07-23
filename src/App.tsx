@@ -85,6 +85,8 @@ const TRANSLATIONS = {
     clearQueue: "Warteschlange leeren",
     loopActive: "JINGLE-LOOP: AKTIV",
     loopInactive: "JINGLE-LOOP: INAKTIV",
+    queueLockActive: "WARTESCHLANGEN-SPERRE: AKTIV",
+    queueLockInactive: "WARTESCHLANGEN-SPERRE: INAKTIV",
   },
   en: {
     title: "EQUISOUND",
@@ -138,6 +140,8 @@ const TRANSLATIONS = {
     clearQueue: "Clear Queue",
     loopActive: "JINGLE LOOP: ACTIVE",
     loopInactive: "JINGLE LOOP: INACTIVE",
+    queueLockActive: "QUEUE LOCK: ACTIVE",
+    queueLockInactive: "QUEUE LOCK: INACTIVE",
   }
 };
 
@@ -243,6 +247,20 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [queues, setQueues] = useState<Record<string, string[]>>({});
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
+  const [lockedQueues, setLockedQueues] = useState<string[]>([]);
+
+  async function handleToggleQueueLock(categoryId: string) {
+    try {
+      const isLockedNow = await invoke<boolean>("toggle_queue_lock", { categoryId });
+      setLockedQueues(prev => 
+        isLockedNow 
+          ? [...prev, categoryId] 
+          : prev.filter(id => id !== categoryId)
+      );
+    } catch (err) {
+      console.error("Failed to toggle queue lock:", err);
+    }
+  }
   
   const [songDurations, setSongDurations] = useState<Record<string, number>>({});
   const [jingleElapsed, setJingleElapsed] = useState<number>(0);
@@ -400,6 +418,10 @@ function App() {
         // Poll Spotify active session state
         const isSpotifyActive = await invoke<boolean>("get_spotify_playback_state");
         setSpotifyPlaying(isSpotifyActive);
+
+        // Poll queue lock status
+        const locks = await invoke<string[]>("get_queue_locks");
+        setLockedQueues(locks);
 
         // Poll category queues state only when queue manager is not open
         if (!queueModalCategory) {
@@ -883,7 +905,7 @@ function App() {
                     <div className="pad-queue-list">
                       <span className="queue-title">NÄCHSTE TITEL:</span>
                       {queues["tusch"].slice(0, 2).map((songPath, idx) => (
-                        <div key={songPath} className="pad-queue-item">
+                        <div key={songPath} className={`pad-queue-item ${idx === 0 && lockedQueues.includes("tusch") ? "first-locked" : ""}`}>
                           <span className="queue-num">#{idx + 1}</span>
                           <span className="queue-name" title={songPath}>{truncateFileName(songPath, 24)}</span>
                           <button 
@@ -1004,7 +1026,7 @@ function App() {
                         <div className="pad-queue-list">
                           <span className="queue-title">NÄCHSTE TITEL:</span>
                           {queues[cat.id].slice(0, 2).map((songPath, idx) => (
-                            <div key={songPath} className="pad-queue-item">
+                            <div key={songPath} className={`pad-queue-item ${idx === 0 && lockedQueues.includes(cat.id) ? "first-locked" : ""}`}>
                               <span className="queue-num">#{idx + 1}</span>
                               <span className="queue-name" title={songPath}>{truncateFileName(songPath, 24)}</span>
                               <button 
@@ -1313,14 +1335,23 @@ function App() {
             <div className="modal-body queue-manager-body">
               {/* Linke Seite: Aktive Warteschlange */}
               <div className="queue-manager-column active-pane">
-                <h3>{t.queueHeaderActive}</h3>
+                <div className="queue-pane-header">
+                  <h3 style={{ margin: 0 }}>{t.queueHeaderActive}</h3>
+                  <button
+                    className={`btn-modal-lock-queue ${lockedQueues.includes(queueModalCategory) ? "active" : ""}`}
+                    onClick={() => handleToggleQueueLock(queueModalCategory)}
+                    title={lockedQueues.includes(queueModalCategory) ? "Warteschlange entsperren" : "Warteschlange sperren (ersten Song halten)"}
+                  >
+                    {lockedQueues.includes(queueModalCategory) ? "🔒" : "🔓"}
+                  </button>
+                </div>
                 <div className="queue-list-container">
                   {(!queues[queueModalCategory] || queues[queueModalCategory].length === 0) ? (
                     <div className="queue-empty-text">{t.queueEmpty}</div>
                   ) : (
                     <ul className="managed-queue-list">
                       {queues[queueModalCategory].map((songPath, idx) => (
-                        <li key={`${songPath}-${idx}`} className="managed-queue-item">
+                        <li key={`${songPath}-${idx}`} className={`managed-queue-item ${idx === 0 && lockedQueues.includes(queueModalCategory) ? "first-locked" : ""}`}>
                           <div style={{ display: "flex", alignItems: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexGrow: 1 }}>
                             <span className="managed-queue-num">#{idx + 1}</span>
                             <span className="managed-queue-name" title={songPath}>{truncateFileName(songPath, 30)}</span>
@@ -1368,7 +1399,9 @@ function App() {
 
               {/* Rechte Seite: Verfügbare Songs */}
               <div className="queue-manager-column available-pane">
-                <h3>{t.queueHeaderAvailable}</h3>
+                <div className="queue-pane-header">
+                  <h3 style={{ margin: 0 }}>{t.queueHeaderAvailable}</h3>
+                </div>
                 <div className="queue-list-container">
                   {(!config.categories[queueModalCategory] || config.categories[queueModalCategory].songs.length === 0) ? (
                     <div className="queue-empty-text">{t.noSongs}</div>
