@@ -358,6 +358,45 @@ function App() {
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
   const [lockedQueues, setLockedQueues] = useState<string[]>([]);
 
+  // Refs for tracking header layout coordinates
+  const headerLogoRef = useRef<HTMLImageElement>(null);
+  const headerTextRef = useRef<HTMLDivElement>(null);
+  const [headerCoords, setHeaderCoords] = useState<{
+    logoTop: number;
+    logoLeft: number;
+    logoWidth: number;
+    logoHeight: number;
+    textTop: number;
+    textLeft: number;
+  } | null>(null);
+
+  useEffect(() => {
+    function updateCoords() {
+      if (headerLogoRef.current && headerTextRef.current) {
+        const logoRect = headerLogoRef.current.getBoundingClientRect();
+        const textRect = headerTextRef.current.getBoundingClientRect();
+        setHeaderCoords({
+          logoTop: logoRect.top,
+          logoLeft: logoRect.left,
+          logoWidth: logoRect.width,
+          logoHeight: logoRect.height,
+          textTop: textRect.top,
+          textLeft: textRect.left
+        });
+      }
+    }
+
+    if (config) {
+      // Small timeout to ensure layout rendering is complete
+      const timer = setTimeout(updateCoords, 50);
+      window.addEventListener('resize', updateCoords);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', updateCoords);
+      };
+    }
+  }, [config]);
+
   // Update state variables
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'upToDate' | 'available' | 'downloading' | 'installing' | 'failed'>('idle');
   const [updateProgress, setUpdateProgress] = useState<number | null>(null);
@@ -989,6 +1028,46 @@ function App() {
 
   const themeClass = config.theme === "light" ? "light" : "dark";
 
+  const isCentered = ["spin", "text"].includes(introStage);
+
+  const splashLogoStyle: React.CSSProperties = isCentered
+    ? {}
+    : headerCoords
+      ? {
+          position: "fixed",
+          top: `${headerCoords.logoTop}px`,
+          left: `${headerCoords.logoLeft}px`,
+          width: `${headerCoords.logoWidth}px`,
+          height: `${headerCoords.logoHeight}px`,
+          transform: "translate(0, 0) rotate(360deg)",
+          boxShadow: "none",
+          border: "1px solid var(--border-panel)",
+          opacity: introStage === "fadeout" ? 0 : 1,
+          transition: introStage === "fadeout" 
+            ? "opacity 0.4s ease" 
+            : "all 1.2s cubic-bezier(0.25, 1, 0.5, 1)"
+        }
+      : {};
+
+  const splashTextStyle: React.CSSProperties = isCentered
+    ? {
+        opacity: introStage === "text" ? 1 : 0
+      }
+    : headerCoords
+      ? {
+          position: "fixed",
+          top: `${headerCoords.textTop}px`,
+          left: `${headerCoords.textLeft}px`,
+          transform: "translate(0, 0)",
+          opacity: introStage === "fadeout" ? 0 : 1,
+          alignItems: "flex-start",
+          textAlign: "left",
+          transition: introStage === "fadeout" 
+            ? "opacity 0.4s ease" 
+            : "all 1.2s cubic-bezier(0.25, 1, 0.5, 1)"
+        }
+      : {};
+
   return (
     <div className={`app-container ${themeClass} ${["spin", "text"].includes(introStage) ? "intro-active" : ""}`}>
       {/* Startup / Splash Intro Animation */}
@@ -998,8 +1077,9 @@ function App() {
             src={equisoundLogo} 
             alt="EquiSound Logo" 
             className="splash-logo" 
+            style={splashLogoStyle}
           />
-          <div className="splash-text-container">
+          <div className="splash-text-container" style={splashTextStyle}>
             <h1 className="splash-title">{t.title}</h1>
             <span className="splash-subtitle">{t.subtitle}</span>
           </div>
@@ -1011,6 +1091,7 @@ function App() {
         <div className="brand" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.75rem", minHeight: "44px" }}>
           <img 
             src={equisoundLogo} 
+            ref={headerLogoRef}
             alt="EquiSound Logo" 
             className="header-brand-logo" 
             style={{ 
@@ -1023,7 +1104,7 @@ function App() {
               transition: 'opacity 0.3s ease' 
             }}
           />
-          <div style={{ display: "flex", flexDirection: "column", opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+          <div ref={headerTextRef} style={{ display: "flex", flexDirection: "column", opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, transition: 'opacity 0.3s ease' }}>
             <h1>{t.title}</h1>
             <span>{t.subtitle}</span>
           </div>
