@@ -1611,9 +1611,6 @@ function App() {
               
               {/* Credits / Impressum Section */}
               <div style={{ marginTop: "20px", borderTop: "1px solid var(--border-color, #444)", paddingTop: "15px" }}>
-                <h3 style={{ fontSize: "14px", color: "#aaa", marginBottom: "10px", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ℹ️ {t.infoTitle}
-                </h3>
                 <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6" }}>
                   <p style={{ margin: "2px 0" }}>
                     © {new Date().getFullYear()} Lukas Rischmüller & RFV Leonberg. {t.infoRights}
