@@ -3,7 +3,7 @@
 use rand::seq::SliceRandom;
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, State, Manager};
+use tauri::{AppHandle, State, Manager, Emitter};
 
 mod audio_player;
 mod config;
@@ -219,6 +219,7 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
                             let target_vol = if config.master_mute { 0.0 } else { current_vol };
 
                             if let Ok(_) = app_state.player.play_loop(&selected_song_clone, target_vol) {
+                                let _ = app_clone.emit("jingle-loop-wrap", ());
                                 std::thread::sleep(Duration::from_millis(200));
                                 continue;
                             }

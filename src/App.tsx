@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { listen } from "@tauri-apps/api/event";
 import equisoundLogo from "./assets/equisound_logo.png";
 import "./App.css";
 
@@ -407,35 +408,52 @@ function App() {
   // Intro / Splash screen stage state
   const [introStage, setIntroStage] = useState<'spin' | 'text' | 'slide' | 'fadeout' | 'done'>('spin');
 
-  useEffect(() => {
+  // Timer Refs for the splash sequence
+  const textTimerRef = useRef<any>(null);
+  const slideTimerRef = useRef<any>(null);
+  const fadeoutTimerRef = useRef<any>(null);
+  const doneTimerRef = useRef<any>(null);
+
+  function triggerSplashAnimation() {
+    if (textTimerRef.current) clearTimeout(textTimerRef.current);
+    if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+    if (fadeoutTimerRef.current) clearTimeout(fadeoutTimerRef.current);
+    if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
+
+    setIntroStage('spin');
+
     // 1. Spin logo initially (1.2 seconds)
-    // 2. Fade text in (1.0 second duration)
-    const textTimer = setTimeout(() => {
+    textTimerRef.current = setTimeout(() => {
       setIntroStage('text');
     }, 1200);
 
-    // 3. Slide logo & title to the header corner (0.9 seconds slide duration)
-    const slideTimer = setTimeout(() => {
+    // 2. Fade text in (1.0 second duration)
+    slideTimerRef.current = setTimeout(() => {
       setIntroStage('slide');
     }, 2200);
 
-    // 4. Start crossfading splash overlay to layout header (0.4 seconds crossfade)
-    const fadeoutTimer = setTimeout(() => {
+    // 3. Slide logo & title to the header corner (0.9 seconds slide duration)
+    fadeoutTimerRef.current = setTimeout(() => {
       setIntroStage('fadeout');
     }, 3100);
 
-    // 5. Finish intro, unmount overlay, show fully interactive UI
-    const doneTimer = setTimeout(() => {
+    // 4. Start crossfading splash overlay to layout header (0.4 seconds crossfade)
+    doneTimerRef.current = setTimeout(() => {
       setIntroStage('done');
     }, 3500);
+  }
 
+  useEffect(() => {
+    if (config) {
+      triggerSplashAnimation();
+    }
     return () => {
-      clearTimeout(textTimer);
-      clearTimeout(slideTimer);
-      clearTimeout(fadeoutTimer);
-      clearTimeout(doneTimer);
+      if (textTimerRef.current) clearTimeout(textTimerRef.current);
+      if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+      if (fadeoutTimerRef.current) clearTimeout(fadeoutTimerRef.current);
+      if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
     };
-  }, []);
+  }, [config ? true : false]);
 
   const handleCheckForUpdates = async () => {
     setUpdateStatus('checking');
@@ -636,7 +654,7 @@ function App() {
 
     setJingleElapsed(0);
 
-    const startTime = Date.now();
+    let startTime = Date.now();
     const interval = setInterval(() => {
       const elapsedSec = (Date.now() - startTime) / 1000;
       
@@ -652,7 +670,14 @@ function App() {
       }
     }, 100);
 
-    return () => clearInterval(interval);
+    const unlistenPromise = listen("jingle-loop-wrap", () => {
+      startTime = Date.now();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unlistenPromise.then((unlisten) => unlisten());
+    };
   }, [activeCategory, playingSong, config?.jingle_loop, songDurations]);
 
   // Fullscreen keyboard listener (F11) and state check on mount
@@ -1045,7 +1070,7 @@ function App() {
           opacity: introStage === "fadeout" ? 0 : 1,
           transition: introStage === "fadeout" 
             ? "opacity 0.4s ease" 
-            : "all 1.2s cubic-bezier(0.25, 1, 0.5, 1)"
+            : "opacity 0.4s ease, top 0.9s cubic-bezier(0.25, 1, 0.5, 1), left 0.9s cubic-bezier(0.25, 1, 0.5, 1), width 0.9s cubic-bezier(0.25, 1, 0.5, 1), height 0.9s cubic-bezier(0.25, 1, 0.5, 1), transform 0.9s cubic-bezier(0.25, 1, 0.5, 1)"
         }
       : {};
 
@@ -1064,7 +1089,7 @@ function App() {
           textAlign: "left",
           transition: introStage === "fadeout" 
             ? "opacity 0.4s ease" 
-            : "all 1.2s cubic-bezier(0.25, 1, 0.5, 1)"
+            : "opacity 0.4s ease, top 0.9s cubic-bezier(0.25, 1, 0.5, 1), left 0.9s cubic-bezier(0.25, 1, 0.5, 1), width 0.9s cubic-bezier(0.25, 1, 0.5, 1), height 0.9s cubic-bezier(0.25, 1, 0.5, 1), transform 0.9s cubic-bezier(0.25, 1, 0.5, 1)"
         }
       : {};
 
@@ -1101,8 +1126,10 @@ function App() {
               objectFit: "cover",
               border: "1px solid var(--border-panel)",
               opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, 
-              transition: 'opacity 0.3s ease' 
+              transition: 'opacity 0.3s ease',
+              cursor: 'pointer'
             }}
+            onClick={triggerSplashAnimation}
           />
           <div ref={headerTextRef} style={{ display: "flex", flexDirection: "column", opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, transition: 'opacity 0.3s ease' }}>
             <h1>{t.title}</h1>
