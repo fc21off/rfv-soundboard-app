@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-// import rfvLogo from "./assets/rfv_logo.jpg"; // Kept in project for future use
+import rfvLogo from "./assets/rfv_logo.jpg";
 import "./App.css";
 
 interface JingleCategory {
@@ -98,6 +98,13 @@ const TRANSLATIONS = {
     updateDownloading: "Wird heruntergeladen...",
     updateInstalling: "Wird installiert...",
     updateFailed: "Fehler beim Update.",
+    infoTitle: "Info & Impressum",
+    infoSoftware: "Software",
+    infoDeveloper: "Entwickler",
+    infoClub: "Verein",
+    infoPurpose: "Zweck",
+    infoPurposeVal: "Offizielle Turniersound-Konsole",
+    infoRights: "Alle Rechte vorbehalten.",
   },
   en: {
     title: "EQUISOUND",
@@ -162,6 +169,13 @@ const TRANSLATIONS = {
     updateDownloading: "Downloading...",
     updateInstalling: "Installing...",
     updateFailed: "Update failed.",
+    infoTitle: "Info & Credits",
+    infoSoftware: "Software",
+    infoDeveloper: "Developer",
+    infoClub: "Club",
+    infoPurpose: "Purpose",
+    infoPurposeVal: "Official tournament sound console",
+    infoRights: "All rights reserved.",
   }
 };
 
@@ -350,6 +364,33 @@ function App() {
   const [newVersion, setNewVersion] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateInstance, setUpdateInstance] = useState<any>(null);
+
+  // Intro / Splash screen stage state
+  const [introStage, setIntroStage] = useState<'spin' | 'text' | 'slide' | 'done'>('spin');
+
+  useEffect(() => {
+    // 1. Spin logo initially (1.2 seconds)
+    // 2. Fade text in (1.0 second duration)
+    const textTimer = setTimeout(() => {
+      setIntroStage('text');
+    }, 1200);
+
+    // 3. Slide logo & title to the header corner (1.2 seconds transition)
+    const slideTimer = setTimeout(() => {
+      setIntroStage('slide');
+    }, 2200);
+
+    // 4. Finish intro, unmount overlay, show fully interactive UI
+    const doneTimer = setTimeout(() => {
+      setIntroStage('done');
+    }, 3400);
+
+    return () => {
+      clearTimeout(textTimer);
+      clearTimeout(slideTimer);
+      clearTimeout(doneTimer);
+    };
+  }, []);
 
   const handleCheckForUpdates = async () => {
     setUpdateStatus('checking');
@@ -943,12 +984,43 @@ function App() {
   const themeClass = config.theme === "light" ? "light" : "dark";
 
   return (
-    <div className={`app-container ${themeClass}`}>
+    <div className={`app-container ${themeClass} ${["spin", "text"].includes(introStage) ? "intro-active" : ""}`}>
+      {/* Startup / Splash Intro Animation */}
+      {introStage !== 'done' && (
+        <div className={`splash-overlay ${introStage}`}>
+          <img 
+            src={rfvLogo} 
+            alt="RFV Logo" 
+            className="splash-logo" 
+          />
+          <div className="splash-text-container">
+            <h1 className="splash-title">{t.title}</h1>
+            <span className="splash-subtitle">{t.subtitle}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="app-header">
-        <div className="brand">
-          <h1>{t.title}</h1>
-          <span>{t.subtitle}</span>
+        <div className="brand" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.75rem", minHeight: "44px" }}>
+          <img 
+            src={rfvLogo} 
+            alt="RFV Logo" 
+            className="header-brand-logo" 
+            style={{ 
+              width: "36px", 
+              height: "36px", 
+              borderRadius: "50%", 
+              objectFit: "cover",
+              border: "1px solid var(--border-panel)",
+              opacity: introStage === 'done' ? 1 : 0, 
+              transition: 'opacity 0.3s ease' 
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", opacity: introStage === 'done' ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+            <h1>{t.title}</h1>
+            <span>{t.subtitle}</span>
+          </div>
         </div>
         <div className="header-actions">
           <button 
@@ -1528,6 +1600,22 @@ function App() {
                       )}
                     </div>
                   )}
+                </div>
+              </div>
+              
+              {/* Credits / Impressum Section */}
+              <div style={{ marginTop: "20px", borderTop: "1px solid var(--border-color, #444)", paddingTop: "15px" }}>
+                <h3 style={{ fontSize: "14px", color: "#aaa", marginBottom: "10px", letterSpacing: "1px", textTransform: "uppercase" }}>
+                  ℹ️ {t.infoTitle}
+                </h3>
+                <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6" }}>
+                  <p style={{ margin: "2px 0" }}><strong>{t.infoSoftware}:</strong> EquiSound v2.3.0</p>
+                  <p style={{ margin: "2px 0" }}><strong>{t.infoDeveloper}:</strong> Lukas Off</p>
+                  <p style={{ margin: "2px 0" }}><strong>{t.infoClub}:</strong> Reit- und Fahrverein Leonberg e.V.</p>
+                  <p style={{ margin: "2px 0" }}><strong>{t.infoPurpose}:</strong> {t.infoPurposeVal}</p>
+                  <p style={{ margin: "10px 0 2px 0", fontSize: "11px", color: "#777" }}>
+                    © {new Date().getFullYear()} Lukas Off & RFV Leonberg. {t.infoRights}
+                  </p>
                 </div>
               </div>
             </div>

@@ -1764,5 +1764,147 @@ body {
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.15);
 }
 
+/* Startup Splash Animation Styles */
+
+.splash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0c0f0d; /* Brand matching dark green/black background */
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+}
+
+.splash-overlay.slide {
+  background-color: transparent;
+}
+
+.splash-logo {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-brand);
+  box-shadow: 0 0 20px rgba(132, 162, 143, 0.3);
+  object-fit: cover;
+  transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Spin animation on mounting */
+.splash-overlay.spin .splash-logo {
+  animation: logoSpin 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.splash-overlay.text .splash-logo {
+  transform: translate(-50%, -50%) rotate(360deg);
+}
+
+/* Slide Logo to Header Target position */
+.splash-overlay.slide .splash-logo {
+  top: 12px;
+  left: 20px;
+  transform: translate(0, 0) rotate(360deg);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-panel);
+  box-shadow: none;
+}
+
+/* Text Container starts hidden */
+.splash-text-container {
+  position: fixed;
+  top: calc(50% + 110px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0;
+  transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Fade in text in Stage 2 */
+.splash-overlay.text .splash-text-container {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+/* Slide text to Header Target position next to the logo */
+.splash-overlay.slide .splash-text-container {
+  opacity: 1;
+  top: 12px;
+  left: 68px; /* 20px (padding) + 36px (logo) + 12px (gap) */
+  transform: translate(0, 0);
+  align-items: flex-start;
+  text-align: left;
+}
+
+.splash-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-brand) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: font-size 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.splash-overlay.slide .splash-title {
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+}
+
+.splash-subtitle {
+  font-size: 0.85rem;
+  color: #84a28f;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-top: 5px;
+  transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  white-space: nowrap;
+}
+
+.splash-overlay.slide .splash-subtitle {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  margin-top: 0;
+}
+
+/* Main App Layout Fade In */
+.app-body,
+.app-header .header-actions {
+  opacity: 1;
+  transition: opacity 1.2s ease;
+}
+
+/* Fade in app body only after intro starts sliding */
+.app-container.intro-active .app-body,
+.app-container.intro-active .app-header .header-actions {
+  opacity: 0;
+}
+
+@keyframes logoSpin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg) scale(1);
+    opacity: 1;
+  }
+}
+
 
 

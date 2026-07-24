@@ -1,11 +1,11 @@
 {
-  "version": "2.2.2",
-  "notes": "Escape-Taste bricht laufenden Jingle ab. Tastatur-Shortcut hinzugefügt.",
+  "version": "2.3.0",
+  "notes": "Startup Intro-Animation (Logo Spin & Slide-Up) und Info/Impressum Sektion hinzugefügt.",
   "pub_date": "2026-07-24T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYXJjYVkreXpwWnZrWjBlUWg0Q2F2aEl2blFJUWRMM0w4ZkJmYzJIN29zc1VUMjhxRXJVZkRKOG8ySXo1a0NuTHBlWFo3bUVwUW9QTmtERnY2OWVYeWdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0ODQ5NjQxCWZpbGU6RXF1aVNvdW5kXzIuMi4yX3g2NF9lbi1VUy5tc2kKb0VBTmVDL3B4anJmZ2hnVE5rakhQb1B4OWtLeHBQTHdmclRIL3g1UThpRXZXKzlVUmNaK2tLVGhCYnFqOEVoWFpXRFNOUUpJYlBjb2lPdkUyYSszQ3c9PQo=",
-      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.2.2/EquiSound_2.2.2_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYXRhL1dkSmZLa25rTk1rU2VSNTN4RlhOMGJTck1hZHc3d0hQZGJtNkl0VFlReUZyaWJsSlRtcUhQbGlyNTdjRDRrek5ZZUpaSzYyeGpZWkhVUVR3cHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0OTIwMTI1CWZpbGU6RXF1aVNvdW5kXzIuMy4wX3g2NF9lbi1VUy5tc2kKWktScWc4eUcwRm5vU1M2VlNlK0pmU2ZBY3VENEdaWFVVQXltV09HRkxzUVpuaWhiQzA5MXpRMjI3V205ZVZYaEN5MGp5Z3psTmcyeEFrblNQWXUwQXc9PQo=",
+      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.3.0/EquiSound_2.3.0_x64_en-US.msi"
     }
   }
 }
