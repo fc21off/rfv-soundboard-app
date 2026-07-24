@@ -1615,11 +1615,7 @@ function App() {
                   ℹ️ {t.infoTitle}
                 </h3>
                 <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6" }}>
-                  <p style={{ margin: "2px 0" }}><strong>{t.infoSoftware}:</strong> EquiSound v2.3.0</p>
-                  <p style={{ margin: "2px 0" }}><strong>{t.infoDeveloper}:</strong> Lukas Rischmüller</p>
-                  <p style={{ margin: "2px 0" }}><strong>{t.infoClub}:</strong> Reit- und Fahrverein Leonberg e.V.</p>
-                  <p style={{ margin: "2px 0" }}><strong>{t.infoPurpose}:</strong> {t.infoPurposeVal}</p>
-                  <p style={{ margin: "10px 0 2px 0", fontSize: "11px", color: "#777" }}>
+                  <p style={{ margin: "2px 0" }}>
                     © {new Date().getFullYear()} Lukas Rischmüller & RFV Leonberg. {t.infoRights}
                   </p>
                 </div>
