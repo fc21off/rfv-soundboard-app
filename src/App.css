@@ -1811,13 +1811,25 @@ body {
 
 /* Slide Logo to Header Target position */
 .splash-overlay.slide .splash-logo {
-  top: 12px;
-  left: 20px;
+  top: 16px;
+  left: 12px;
   transform: translate(0, 0) rotate(360deg);
   width: 36px;
   height: 36px;
   border: 1px solid var(--border-panel);
   box-shadow: none;
+}
+
+.splash-overlay.fadeout .splash-logo {
+  top: 16px;
+  left: 12px;
+  transform: translate(0, 0) rotate(360deg);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-panel);
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 /* Text Container starts hidden */
@@ -1843,11 +1855,21 @@ body {
 /* Slide text to Header Target position next to the logo */
 .splash-overlay.slide .splash-text-container {
   opacity: 1;
-  top: 12px;
-  left: 68px; /* 20px (padding) + 36px (logo) + 12px (gap) */
+  top: 17px;
+  left: 60px; /* 12px (padding) + 36px (logo) + 12px (gap) */
   transform: translate(0, 0);
   align-items: flex-start;
   text-align: left;
+}
+
+.splash-overlay.fadeout .splash-text-container {
+  opacity: 0;
+  top: 17px;
+  left: 60px;
+  transform: translate(0, 0);
+  align-items: flex-start;
+  text-align: left;
+  transition: opacity 0.4s ease;
 }
 
 .splash-title {
@@ -1880,6 +1902,21 @@ body {
   font-size: 0.75rem;
   letter-spacing: 2px;
   margin-top: 0;
+}
+
+.splash-overlay.fadeout .splash-title {
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+}
+
+.splash-overlay.fadeout .splash-subtitle {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  margin-top: 0;
+}
+
+.splash-overlay.fadeout {
+  background-color: transparent;
 }
 
 /* Main App Layout Fade In */

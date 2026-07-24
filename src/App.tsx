@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import rfvLogo from "./assets/rfv_logo.jpg";
+import equisoundLogo from "./assets/equisound_logo.png";
 import "./App.css";
 
 interface JingleCategory {
@@ -366,7 +366,7 @@ function App() {
   const [updateInstance, setUpdateInstance] = useState<any>(null);
 
   // Intro / Splash screen stage state
-  const [introStage, setIntroStage] = useState<'spin' | 'text' | 'slide' | 'done'>('spin');
+  const [introStage, setIntroStage] = useState<'spin' | 'text' | 'slide' | 'fadeout' | 'done'>('spin');
 
   useEffect(() => {
     // 1. Spin logo initially (1.2 seconds)
@@ -375,19 +375,25 @@ function App() {
       setIntroStage('text');
     }, 1200);
 
-    // 3. Slide logo & title to the header corner (1.2 seconds transition)
+    // 3. Slide logo & title to the header corner (0.9 seconds slide duration)
     const slideTimer = setTimeout(() => {
       setIntroStage('slide');
     }, 2200);
 
-    // 4. Finish intro, unmount overlay, show fully interactive UI
+    // 4. Start crossfading splash overlay to layout header (0.4 seconds crossfade)
+    const fadeoutTimer = setTimeout(() => {
+      setIntroStage('fadeout');
+    }, 3100);
+
+    // 5. Finish intro, unmount overlay, show fully interactive UI
     const doneTimer = setTimeout(() => {
       setIntroStage('done');
-    }, 3400);
+    }, 3500);
 
     return () => {
       clearTimeout(textTimer);
       clearTimeout(slideTimer);
+      clearTimeout(fadeoutTimer);
       clearTimeout(doneTimer);
     };
   }, []);
@@ -989,8 +995,8 @@ function App() {
       {introStage !== 'done' && (
         <div className={`splash-overlay ${introStage}`}>
           <img 
-            src={rfvLogo} 
-            alt="RFV Logo" 
+            src={equisoundLogo} 
+            alt="EquiSound Logo" 
             className="splash-logo" 
           />
           <div className="splash-text-container">
@@ -1004,8 +1010,8 @@ function App() {
       <header className="app-header">
         <div className="brand" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.75rem", minHeight: "44px" }}>
           <img 
-            src={rfvLogo} 
-            alt="RFV Logo" 
+            src={equisoundLogo} 
+            alt="EquiSound Logo" 
             className="header-brand-logo" 
             style={{ 
               width: "36px", 
@@ -1013,11 +1019,11 @@ function App() {
               borderRadius: "50%", 
               objectFit: "cover",
               border: "1px solid var(--border-panel)",
-              opacity: introStage === 'done' ? 1 : 0, 
+              opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, 
               transition: 'opacity 0.3s ease' 
             }}
           />
-          <div style={{ display: "flex", flexDirection: "column", opacity: introStage === 'done' ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+          <div style={{ display: "flex", flexDirection: "column", opacity: ["fadeout", "done"].includes(introStage) ? 1 : 0, transition: 'opacity 0.3s ease' }}>
             <h1>{t.title}</h1>
             <span>{t.subtitle}</span>
           </div>
@@ -1610,11 +1616,11 @@ function App() {
                 </h3>
                 <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6" }}>
                   <p style={{ margin: "2px 0" }}><strong>{t.infoSoftware}:</strong> EquiSound v2.3.0</p>
-                  <p style={{ margin: "2px 0" }}><strong>{t.infoDeveloper}:</strong> Lukas Off</p>
+                  <p style={{ margin: "2px 0" }}><strong>{t.infoDeveloper}:</strong> Lukas Rischmüller</p>
                   <p style={{ margin: "2px 0" }}><strong>{t.infoClub}:</strong> Reit- und Fahrverein Leonberg e.V.</p>
                   <p style={{ margin: "2px 0" }}><strong>{t.infoPurpose}:</strong> {t.infoPurposeVal}</p>
                   <p style={{ margin: "10px 0 2px 0", fontSize: "11px", color: "#777" }}>
-                    © {new Date().getFullYear()} Lukas Off & RFV Leonberg. {t.infoRights}
+                    © {new Date().getFullYear()} Lukas Rischmüller & RFV Leonberg. {t.infoRights}
                   </p>
                 </div>
               </div>
