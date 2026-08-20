@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EquiSound v2.3.1 – Technische Dokumentation</title>
+  <meta name="description" content="Offizielle technische Dokumentation für EquiSound v2.3.1 – Turniersound-Konsole des RFV Leonberg e.V.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-aside: #f8f9fb;
+      --bg-code: #f3f4f6;
+      --bg-table-head: #f0f2f5;
+      --bg-callout: #f0f7ff;
+      --border: #e2e5ea;
+      --border-light: #eef0f3;
+      --text: #1a1d24;
+      --text-secondary: #4b5263;
+      --text-muted: #8690a2;
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --accent-dark: #1d4ed8;
+      --green: #16a34a;
+      --orange: #d97706;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      --gold: #b45309;
+      --radius: 8px;
+      --sidebar-w: 260px;
+      --header-h: 56px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .doc-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-h);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+      gap: 16px;
+    }
+
+    .doc-header-brand {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .doc-header-brand span {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 13px;
+    }
+
+    .doc-header-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .doc-header-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Layout ── */
+    .doc-layout {
+      display: flex;
+      margin-top: var(--header-h);
+    }
+
+    /* ── Sidebar ── */
+    .doc-sidebar {
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-aside);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px 0;
+      font-size: 13.5px;
+      z-index: 90;
+    }
+
+    .doc-sidebar::-webkit-scrollbar { width: 4px; }
+    .doc-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .nav-group-label {
+      padding: 8px 20px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    .nav-group-label:first-child { margin-top: 0; }
+
+    .doc-sidebar a {
+      display: block;
+      padding: 6px 20px 6px 24px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .doc-sidebar a:hover {
+      color: var(--text);
+      background: rgba(0,0,0,0.03);
+    }
+
+    .doc-sidebar a.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: var(--accent-light);
+      font-weight: 600;
+    }
+
+    /* ── Main Content ── */
+    .doc-main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      max-width: 820px;
+      padding: 40px 48px 120px;
+    }
+
+    /* ── Typography ── */
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+
+    .doc-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .doc-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-meta code {
+      background: var(--bg-code);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    h2 {
+      font-size: 21px;
+      font-weight: 700;
+      margin-top: 56px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: -0.3px;
+    }
+
+    h2 .sec-num {
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 32px;
+      margin-bottom: 10px;
+    }
+
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 20px;
+      margin-bottom: 6px;
+    }
+
+    p { margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    strong { font-weight: 600; }
+
+    /* ── Lists ── */
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    li > ul, li > ol {
+      margin-top: 6px;
+      margin-bottom: 0;
+    }
+
+    /* ── Code ── */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: var(--bg-code);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent-dark);
+    }
+
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 16px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: var(--text);
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--bg-table-head);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    td {
+      padding: 10px 14px;
+      border: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+
+    tr:hover td {
+      background: var(--bg-aside);
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    .callout p { margin-bottom: 0; }
+
+    .callout-label {
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .callout.note {
+      background: #f0f7ff;
+      border-color: var(--accent);
+    }
+    .callout.note .callout-label { color: var(--accent); }
+
+    .callout.warn {
+      background: #fffbeb;
+      border-color: var(--orange);
+    }
+    .callout.warn .callout-label { color: var(--orange); }
+
+    .callout.important {
+      background: #fef2f2;
+      border-color: var(--red);
+    }
+    .callout.important .callout-label { color: var(--red); }
+
+    .callout.tip {
+      background: #f0fdf4;
+      border-color: var(--green);
+    }
+    .callout.tip .callout-label { color: var(--green); }
+
+    /* ── Definition List ── */
+    dl {
+      margin: 16px 0;
+    }
+
+    dt {
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+
+    dd {
+      color: var(--text-secondary);
+      margin-left: 0;
+      margin-top: 2px;
+      padding-left: 16px;
+      border-left: 2px solid var(--border-light);
+      font-size: 14px;
+    }
+
+    /* ── Tag / Badge ── */
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tag-blue { background: #dbeafe; color: #1e40af; }
+    .tag-green { background: #dcfce7; color: #166534; }
+    .tag-orange { background: #fef3c7; color: #92400e; }
+    .tag-purple { background: #ede9fe; color: #5b21b6; }
+    .tag-gold { background: #fef3c7; color: #92400e; }
+    .tag-gray { background: var(--bg-code); color: var(--text-secondary); }
+
+    /* ── Horizontal Rule ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .doc-sidebar {
+        display: none;
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        z-index: 200;
+        background: var(--bg);
+      }
+
+      .doc-sidebar.open { display: block; }
+
+      .mobile-toggle { display: block; }
+
+      .doc-main {
+        margin-left: 0;
+        padding: 24px 20px 80px;
+      }
+    }
+
+    @media print {
+      .doc-header, .doc-sidebar, .mobile-toggle { display: none; }
+      .doc-main { margin-left: 0; padding: 0; max-width: 100%; }
+      h2 { page-break-before: always; }
+      h2:first-of-type { page-break-before: avoid; }
+    }
+
+    /* ── Scroll offset for anchors ── */
+    [id] {
+      scroll-margin-top: calc(var(--header-h) + 24px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="doc-header">
+    <button class="mobile-toggle" onclick="document.querySelector('.doc-sidebar').classList.toggle('open')" aria-label="Navigation">☰</button>
+    <div class="doc-header-brand">
+      EquiSound
+      <span>v2.3.1</span>
+    </div>
+    <div class="doc-header-sep"></div>
+    <div class="doc-header-label">Technische Dokumentation</div>
+  </header>
+
+  <div class="doc-layout">
+
+    <!-- Sidebar Navigation -->
+    <nav class="doc-sidebar" id="sidebar">
+      <div class="nav-group-label">Allgemein</div>
+      <a href="#einleitung">Einleitung</a>
+      <a href="#systemvoraussetzungen">Systemvoraussetzungen</a>
+      <a href="#technologie">Technologie-Stack</a>
+      <a href="#benutzeroberflaeche">Benutzeroberfläche</a>
+
+      <div class="nav-group-label">Funktionen</div>
+      <a href="#kategorien">Jingle-Kategorien</a>
+      <a href="#launchpads">Launchpad-Pads</a>
+      <a href="#warteschlangen">Warteschlangen</a>
+      <a href="#spotify">Spotify-Integration</a>
+      <a href="#mischpult">Mischpult (Fader)</a>
+      <a href="#master-controls">Master-Controls</a>
+
+      <div class="nav-group-label">Verwaltung</div>
+      <a href="#liederverwaltung">Liederverwaltung</a>
+      <a href="#einstellungen">Einstellungen</a>
+      <a href="#aktualisierungen">Software-Updates</a>
+
+      <div class="nav-group-label">Bedienung</div>
+      <a href="#tastenkuerzel">Tastenkürzel</a>
+      <a href="#vollbildmodus">Vollbildmodus</a>
+
+      <div class="nav-group-label">Technische Referenz</div>
+      <a href="#architektur">Backend-Architektur</a>
+      <a href="#ipc-kommandos">IPC-Kommandos</a>
+      <a href="#konfiguration">Konfigurationsdatei</a>
+      <a href="#audio-engine">Audio-Engine</a>
+      <a href="#wasapi">WASAPI-Integration</a>
+
+      <div class="nav-group-label">Anhang</div>
+      <a href="#einsatzhinweise">Einsatzhinweise</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="doc-main">
+
+      <h1>EquiSound – Technische Dokumentation</h1>
+      <p class="doc-subtitle">Turniersound-Konsole des RFV Leonberg e.V.</p>
+      <div class="doc-meta">
+        Version <code>2.3.1</code> · App-Identifier <code>de.rfv-leonberg.musiccontrol</code> · Stand: <span id="docDate"></span>
+      </div>
+
+      <!-- ═══════ 1. EINLEITUNG ═══════ -->
+      <h2 id="einleitung"><span class="sec-num">1.</span> Einleitung</h2>
+
+      <p>
+        EquiSound ist eine native Windows-Desktopanwendung zur professionellen Audiosteuerung bei Reitturnieren. 
+        Die Software wurde für den Reit- und Fahrverein Leonberg e.V. entwickelt und ermöglicht das Abspielen 
+        kategorisierter Jingles, die Fernsteuerung der Spotify-Hintergrundmusik über den Windows-Audiomixer sowie 
+        die Echtzeitsteuerung aller Lautstärkepegel über ein integriertes Mischpult.
+      </p>
+      <p>
+        Die Anwendung richtet sich an den Tontechniker in der Sprecherkabine und ist für den Einsatz mit 
+        Touchscreens und Tastatur optimiert.
+      </p>
+
+      <!-- ═══════ 2. SYSTEMVORAUSSETZUNGEN ═══════ -->
+      <h2 id="systemvoraussetzungen"><span class="sec-num">2.</span> Systemvoraussetzungen</h2>
+
+      <table>
+        <tr>
+          <th style="width:200px;">Komponente</th>
+          <th>Anforderung</th>
+        </tr>
+        <tr>
+          <td>Betriebssystem</td>
+          <td>Windows 10/11 (64-Bit)</td>
+        </tr>
+        <tr>
+          <td>Laufzeitumgebung</td>
+          <td>WebView2 (vorinstalliert ab Windows 11, für Windows 10 ggf. separat installieren)</td>
+        </tr>
+        <tr>
+          <td>Spotify-Steuerung</td>
+          <td>Spotify Desktop-App (muss parallel geöffnet sein)</td>
+        </tr>
+        <tr>
+          <td>Fenster-Auflösung</td>
+          <td>Mindestens 1024 × 700 px (Standard-Fenstergröße)</td>
+        </tr>
+        <tr>
+          <td>Audiodateien</td>
+          <td>Lokal auf der Festplatte gespeichert (keine Netzlaufwerke oder USB-Sticks empfohlen)</td>
+        </tr>
+      </table>
+
+      <!-- ═══════ 3. TECHNOLOGIE ═══════ -->
+      <h2 id="technologie"><span class="sec-num">3.</span> Technologie-Stack</h2>
+
+      <table>
+        <tr>
+          <th style="width:200px;">Schicht</th>
+          <th>Technologie</th>
+          <th>Version</th>
+        </tr>
+        <tr>
+          <td>Framework</td>
+          <td>Tauri</td>
+          <td>2.x</td>
+        </tr>
+        <tr>
+          <td>Backend</td>
+          <td>Rust</td>
+          <td>–</td>
+        </tr>
+        <tr>
+          <td>Frontend</td>
+          <td>React + TypeScript</td>
+          <td>19.x</td>
+        </tr>
+        <tr>
+          <td>Build-Tool</td>
+          <td>Vite</td>
+          <td>7.x</td>
+        </tr>
+        <tr>
+          <td>Audio-Engine</td>
+          <td>rodio</td>
+          <td>0.20</td>
+        </tr>
+        <tr>
+          <td>System-Audio</td>
+          <td>Windows WASAPI (COM)</td>
+          <td>–</td>
+        </tr>
+        <tr>
+          <td>Dateidialoge</td>
+          <td>rfd</td>
+          <td>0.15</td>
+        </tr>
+        <tr>
+          <td>Updates</td>
+          <td>tauri-plugin-updater</td>
+          <td>2.x</td>
+        </tr>
+      </table>
+
+      <!-- ═══════ 4. BENUTZEROBERFLÄCHE ═══════ -->
+      <h2 id="benutzeroberflaeche"><span class="sec-num">4.</span> Benutzeroberfläche</h2>
+
+      <p>
+        Die Oberfläche ist als dreispaltiges CSS-Grid-Layout aufgebaut. Bei einer Bildschirmbreite unter 1000 px 
+        werden die Spalten automatisch vertikal gestapelt.
+      </p>
+
+      <table>
+        <tr>
+          <th>Spalte</th>
+          <th>Position</th>
+          <th>Inhalt</th>
+        </tr>
+        <tr>
+          <td><strong>System &amp; Spotify</strong></td>
+          <td>Links</td>
+          <td>Spotify-Steuerung, Master-Controls (Mute, Stop, Loop), Administrationsknöpfe, Siegertusch-Pad</td>
+        </tr>
+        <tr>
+          <td><strong>Launchpad-Grid</strong></td>
+          <td>Mitte</td>
+          <td>2×2-Raster mit den vier Haupt-Jingle-Pads (Prüfung, Fehlerfrei, Einlauf, Siegerrunde)</td>
+        </tr>
+        <tr>
+          <td><strong>Mischpult</strong></td>
+          <td>Rechts</td>
+          <td>6 vertikale Lautstärkeregler (Fader) für Spotify und alle Jingle-Kategorien</td>
+        </tr>
+      </table>
+
+      <h3>Splash-Screen</h3>
+      <p>
+        Beim Start der Anwendung wird eine mehrstufige Animation abgespielt (Phasen: <code>spin</code> → 
+        <code>text</code> → <code>slide</code> → <code>fadeout</code> → <code>done</code>). Das Logo wird 
+        animiert in seine finale Position im Header überführt. Die Zielkoordinaten werden dynamisch berechnet.
+      </p>
+
+      <!-- ═══════ 5. KATEGORIEN ═══════ -->
+      <h2 id="kategorien"><span class="sec-num">5.</span> Jingle-Kategorien</h2>
+
+      <p>
+        EquiSound definiert fünf feste Kategorien, die auf den typischen Ablauf eines Springturniers 
+        abgestimmt sind. Jede Kategorie verfügt über einen eigenen Song-Pool, eine eigene Warteschlange 
+        und einen eigenen Lautstärkeregler.
+      </p>
+
+      <table>
+        <tr>
+          <th>Kategorie</th>
+          <th>ID</th>
+          <th>Farbe</th>
+          <th>Verwendungszweck</th>
+        </tr>
+        <tr>
+          <td><strong>Prüfung eröffnen</strong></td>
+          <td><code>pruefung</code></td>
+          <td><span class="tag tag-blue">Blau</span></td>
+          <td>Startfreigabe, Einmarschmusik, Glockensignal</td>
+        </tr>
+        <tr>
+          <td><strong>Fehlerfrei</strong></td>
+          <td><code>fehlerfrei</code></td>
+          <td><span class="tag tag-green">Grün</span></td>
+          <td>Fanfaren-Jingle für fehlerfreie Runden</td>
+        </tr>
+        <tr>
+          <td><strong>Siegerehrung Einlauf</strong></td>
+          <td><code>einlauf</code></td>
+          <td><span class="tag tag-orange">Orange</span></td>
+          <td>Musik während des Einreitens zur Siegerehrung</td>
+        </tr>
+        <tr>
+          <td><strong>Siegerrunde</strong></td>
+          <td><code>siegerrunde</code></td>
+          <td><span class="tag tag-purple">Lila</span></td>
+          <td>Musik für die Ehrenrunde des Siegers</td>
+        </tr>
+        <tr>
+          <td><strong>Siegertusch</strong></td>
+          <td><code>tusch</code></td>
+          <td><span class="tag tag-gold">Gold</span></td>
+          <td>Kurzer Tusch zur Ankündigung von Platzierungen</td>
+        </tr>
+      </table>
+
+      <p>
+        Die Farbcodierung ist konsistent in der gesamten Benutzeroberfläche implementiert: Pad-Rahmen, 
+        Equalizer-Animationen, Fader-Tracks und aktive Glow-Effekte verwenden jeweils die Kategoriefarbe.
+      </p>
+
+      <!-- ═══════ 6. LAUNCHPADS ═══════ -->
+      <h2 id="launchpads"><span class="sec-num">6.</span> Launchpad-Pads</h2>
+
+      <h3>6.1 Wiedergabe</h3>
+      <ul>
+        <li>Ein Klick auf ein Pad startet den nächsten Song aus der Warteschlange oder — falls die Warteschlange leer ist — einen zufälligen Song aus dem Pool der Kategorie.</li>
+        <li>Ein bereits laufender Jingle einer anderen Kategorie wird dabei sofort beendet.</li>
+        <li>Erneutes Klicken auf ein aktives Pad stoppt die Wiedergabe mit einem konfigurierbaren Fade-Out.</li>
+      </ul>
+
+      <h3>6.2 Statusanzeige</h3>
+      <table>
+        <tr>
+          <th>Zustand</th>
+          <th>Visuelle Darstellung</th>
+        </tr>
+        <tr>
+          <td>Standby</td>
+          <td>Graue Wellenform. Vorschau der nächsten 2 Songs aus der Warteschlange.</td>
+        </tr>
+        <tr>
+          <td>Aktiv (spielt)</td>
+          <td>Animierte Equalizer-Wellenform (7 Bars) in der Kategoriefarbe. Anzeige des aktuellen Dateinamens und der verbleibenden Spielzeit im Format <code>-mm:ss</code>.</td>
+        </tr>
+      </table>
+
+      <h3>6.3 Siegertusch-Pad</h3>
+      <p>
+        Das Siegertusch-Pad ist von den vier Hauptkategorien separiert und befindet sich in der linken Spalte. 
+        Es funktioniert identisch zu den anderen Pads, ist jedoch räumlich isoliert, um eine versehentliche 
+        Auslösung zu verhindern.
+      </p>
+
+      <!-- ═══════ 7. WARTESCHLANGEN ═══════ -->
+      <h2 id="warteschlangen"><span class="sec-num">7.</span> Warteschlangen</h2>
+
+      <p>
+        Jede Kategorie besitzt eine eigene Warteschlange, die die Abspielreihenfolge bestimmt. 
+        Der Warteschlangen-Manager wird über das Klemmbrett-Symbol (📋) auf dem jeweiligen Pad geöffnet.
+      </p>
+
+      <h3>7.1 Aufbau des Warteschlangen-Managers</h3>
+
+      <dl>
+        <dt>Aktive Warteschlange (linke Spalte)</dt>
+        <dd>
+          Zeigt die aktuelle Abspielreihenfolge. Songs können mit den Pfeilsymbolen (↑/↓) umsortiert, 
+          einzeln entfernt (✕) oder als gesamte Liste geleert werden.
+        </dd>
+        <dt>Verfügbare Songs (rechte Spalte)</dt>
+        <dd>
+          Zeigt alle der Kategorie zugewiesenen Songs. Über das Plus-Symbol (➕) werden Songs ans Ende 
+          der aktiven Warteschlange angehängt.
+        </dd>
+      </dl>
+
+      <h3>7.2 Warteschlangen-Sperre (Lock-Modus)</h3>
+
+      <table>
+        <tr>
+          <th>Modus</th>
+          <th>Symbol</th>
+          <th>Verhalten</th>
+        </tr>
+        <tr>
+          <td>Entsperrt</td>
+          <td>🔓</td>
+          <td>Standard. Der abgespielte Song wird nach der Wiedergabe aus der Warteschlange entfernt; der nächste Song rückt nach.</td>
+        </tr>
+        <tr>
+          <td>Gesperrt</td>
+          <td>🔒</td>
+          <td>Der erste Song verbleibt dauerhaft an Position #1 und wird bei jedem Pad-Klick erneut abgespielt.</td>
+        </tr>
+      </table>
+
+      <div class="callout note">
+        <div class="callout-label">Hinweis</div>
+        <p>Ist die Warteschlange leer, wählt die Anwendung bei Klick auf das Pad automatisch einen zufälligen Song aus dem Pool der Kategorie.</p>
+      </div>
+
+      <!-- ═══════ 8. SPOTIFY ═══════ -->
+      <h2 id="spotify"><span class="sec-num">8.</span> Spotify-Integration</h2>
+
+      <p>
+        EquiSound steuert die Spotify-Wiedergabe über zwei Mechanismen: Globale Media-Key-Events zum 
+        Starten/Pausieren und die Windows Audio Session API (WASAPI) zur direkten Lautstärke- und 
+        Mute-Steuerung im Windows-Audiomixer.
+      </p>
+
+      <h3>8.1 Steuerungselemente</h3>
+
+      <dl>
+        <dt>Play / Pause</dt>
+        <dd>
+          Runder Button in der linken Spalte. Simuliert den globalen Tastendruck <code>VK_MEDIA_PLAY_PAUSE</code> 
+          über die Windows-API <code>keybd_event</code>. Pulsiert grün bei aktiver Wiedergabe.
+        </dd>
+        <dt>Spotify Stumm (Mute)</dt>
+        <dd>
+          Schaltet Spotify direkt im Windows-Mixer stumm, ohne die Wiedergabe zu unterbrechen. 
+          Spotify läuft hörbar weiter, sobald die Stummschaltung aufgehoben wird.
+        </dd>
+        <dt>Lautstärke</dt>
+        <dd>
+          Über den Spotify-Fader im Mischpult (rechte Spalte) steuerbar. Die Lautstärke wird direkt 
+          im Windows-Mixer über das COM-Interface <code>ISimpleAudioVolume</code> gesetzt.
+        </dd>
+      </dl>
+
+      <h3>8.2 Auto Fade-In</h3>
+      <p>
+        Wenn die Option <strong>Auto Fade-In</strong> aktiviert ist (Standardzustand: aktiv), 
+        verhält sich die Spotify-Steuerung automatisch wie folgt:
+      </p>
+      <ol>
+        <li>Beim Start eines Jingles wird Spotify automatisch im Windows-Mixer stummgeschaltet.</li>
+        <li>Nach Beendigung des Jingles (natürliches Ende oder manueller Stopp) wird Spotify 
+            automatisch über die konfigurierte Zeitdauer wieder eingeblendet (Fade-In) bis zum 
+            am Fader eingestellten Zielpegel.</li>
+      </ol>
+      <p>
+        Die Fade-In-Dauer ist unter <strong>Einstellungen → Spotify Einblende-Dauer</strong> 
+        konfigurierbar (200 ms – 4000 ms).
+      </p>
+
+      <h3>8.3 Spotify-Prozesserkennung</h3>
+      <p>
+        Das Backend identifiziert den Spotify-Prozess, indem es alle aktiven Audio-Sessions über 
+        <code>IAudioSessionManager2</code> enumeriert und die zugehörige Prozess-ID gegen den 
+        Prozessnamen <code>spotify</code> abgleicht (via <code>GetModuleBaseNameW</code>).
+      </p>
+
+      <!-- ═══════ 9. MISCHPULT ═══════ -->
+      <h2 id="mischpult"><span class="sec-num">9.</span> Mischpult (Fader-Sektion)</h2>
+
+      <p>
+        Die rechte Spalte enthält sechs vertikale Lautstärkeregler zur Echtzeitsteuerung 
+        aller Audiokanäle.
+      </p>
+
+      <table>
+        <tr>
+          <th>Kanal</th>
+          <th>Steuerungsziel</th>
+        </tr>
+        <tr><td>Spotify</td><td>Windows-Mixer-Lautstärke des Spotify-Prozesses (WASAPI)</td></tr>
+        <tr><td>Prüfung eröffnen</td><td>Wiedergabelautstärke der Kategorie <code>pruefung</code></td></tr>
+        <tr><td>Fehlerfrei</td><td>Wiedergabelautstärke der Kategorie <code>fehlerfrei</code></td></tr>
+        <tr><td>Siegerehrung Einlauf</td><td>Wiedergabelautstärke der Kategorie <code>einlauf</code></td></tr>
+        <tr><td>Siegerrunde</td><td>Wiedergabelautstärke der Kategorie <code>siegerrunde</code></td></tr>
+        <tr><td>Siegertusch</td><td>Wiedergabelautstärke der Kategorie <code>tusch</code></td></tr>
+      </table>
+
+      <h3>9.1 Eigenschaften</h3>
+
+      <ul>
+        <li><strong>Touch-optimiert:</strong> Die Fader sind für die Bedienung per Finger auf Touchscreens ausgelegt. Es werden sowohl Maus-Drag als auch Touch-Gesten unterstützt.</li>
+        <li><strong>Logarithmische dB-Skala:</strong> Die lineare Fader-Position (0–100%) wird in eine logarithmische Dezibel-Skala (0 dB bis -∞ dB) umgerechnet und angezeigt.</li>
+        <li><strong>Echtzeit-Übertragung:</strong> Pegeländerungen werden ohne wahrnehmbare Verzögerung an das Audio-Subsystem übergeben.</li>
+        <li><strong>Throttling:</strong> Schnelle Fader-Bewegungen werden intern gedrosselt, um eine Überlastung der IPC-Schnittstelle und des Windows-Mixers zu verhindern.</li>
+      </ul>
+
+      <!-- ═══════ 10. MASTER CONTROLS ═══════ -->
+      <h2 id="master-controls"><span class="sec-num">10.</span> Master-Controls</h2>
+
+      <table>
+        <tr>
+          <th>Steuerelement</th>
+          <th>Funktion</th>
+        </tr>
+        <tr>
+          <td><strong>Master Mute</strong></td>
+          <td>Schaltet sämtliche Audioausgaben der Anwendung sofort stumm (Jingles und Spotify).</td>
+        </tr>
+        <tr>
+          <td><strong>Stop (Not-Aus)</strong></td>
+          <td>Beendet den aktuell laufenden Jingle sofort. Pulsiert rot, solange ein Jingle aktiv ist. Entspricht funktional der <kbd>ESC</kbd>-Taste.</td>
+        </tr>
+        <tr>
+          <td><strong>Loop-Modus</strong></td>
+          <td>Aktiviert Endlos-Wiederholung: Der aktuelle Jingle wird nach dem Ende automatisch erneut gestartet. Die interne Zeitzählung wird bei jedem Loop-Wrap zurückgesetzt (Event: <code>jingle-loop-wrap</code>).</td>
+        </tr>
+      </table>
+
+      <!-- ═══════ 11. LIEDERVERWALTUNG ═══════ -->
+      <h2 id="liederverwaltung"><span class="sec-num">11.</span> Liederverwaltung</h2>
+
+      <p>
+        Der Song-Manager wird über den Button <strong>„Lieder verwalten"</strong> in der linken Spalte geöffnet. 
+        Er ermöglicht das Zuweisen und Entfernen von Audiodateien zu/aus den fünf Kategorien.
+      </p>
+
+      <h3>11.1 Vorgehensweise</h3>
+      <ol>
+        <li>Gewünschte Kategorie im Modal auswählen.</li>
+        <li>Auf <strong>„Lied hinzufügen"</strong> klicken. Der native Windows-Dateidialog öffnet sich.</li>
+        <li>Eine oder mehrere Dateien auswählen (Multi-Select wird unterstützt).</li>
+        <li>Die Dateien werden dem Pool der Kategorie hinzugefügt. Die Wiedergabedauer wird automatisch berechnet.</li>
+        <li>Zum Entfernen eines Songs das rote Entfernen-Symbol (✕) neben dem Eintrag klicken.</li>
+      </ol>
+
+      <h3>11.2 Unterstützte Audioformate</h3>
+
+      <table>
+        <tr>
+          <th>Format</th>
+          <th>Dateierweiterung</th>
+        </tr>
+        <tr><td>MPEG Audio Layer III</td><td><code>.mp3</code></td></tr>
+        <tr><td>Waveform Audio</td><td><code>.wav</code></td></tr>
+        <tr><td>Ogg Vorbis</td><td><code>.ogg</code></td></tr>
+        <tr><td>MPEG-4 Audio</td><td><code>.m4a</code></td></tr>
+        <tr><td>Free Lossless Audio Codec</td><td><code>.flac</code></td></tr>
+      </table>
+
+      <p>Die Decodierung erfolgt nativ über die <code>rodio</code>-Bibliothek in Rust — es sind keine externen Abhängigkeiten wie FFmpeg erforderlich.</p>
+
+      <!-- ═══════ 12. EINSTELLUNGEN ═══════ -->
+      <h2 id="einstellungen"><span class="sec-num">12.</span> Einstellungen</h2>
+
+      <p>
+        Der Einstellungsdialog wird über den Button <strong>„System-Einstellungen"</strong> in der linken Spalte geöffnet.
+      </p>
+
+      <table>
+        <tr>
+          <th>Einstellung</th>
+          <th>Optionen</th>
+          <th>Beschreibung</th>
+        </tr>
+        <tr>
+          <td><strong>Sprache</strong></td>
+          <td>Deutsch, Englisch</td>
+          <td>Wechselt die Sprache der gesamten Benutzeroberfläche.</td>
+        </tr>
+        <tr>
+          <td><strong>Design-Modus</strong></td>
+          <td>Nacht (Dunkel), Tag (Hell)</td>
+          <td>Dunkler Modus für die Sprecherkabine; heller Modus mit hohen Kontrasten für den Einsatz bei direkter Sonneneinstrahlung.</td>
+        </tr>
+        <tr>
+          <td><strong>Fade-Out-Dauer</strong></td>
+          <td>200 ms – 4000 ms</td>
+          <td>Dauer des Lautstärke-Fade-Outs beim manuellen Stoppen eines Jingles.</td>
+        </tr>
+        <tr>
+          <td><strong>Spotify Einblende-Dauer</strong></td>
+          <td>200 ms – 4000 ms</td>
+          <td>Dauer des Lautstärke-Fade-Ins von Spotify nach Beendigung eines Jingles (bei aktivem Auto Fade-In).</td>
+        </tr>
+        <tr>
+          <td><strong>Werksreset</strong></td>
+          <td>–</td>
+          <td>Setzt alle Pools, Warteschlangen und Lautstärken auf den Auslieferungszustand zurück. Erfordert eine Bestätigung.</td>
+        </tr>
+      </table>
+
+      <!-- ═══════ 13. UPDATES ═══════ -->
+      <h2 id="aktualisierungen"><span class="sec-num">13.</span> Software-Updates</h2>
+
+      <p>
+        EquiSound unterstützt Over-the-Air-Updates über das Tauri Updater Plugin. Der Update-Endpunkt 
+        befindet sich auf GitHub Releases.
+      </p>
+
+      <table>
+        <tr>
+          <th style="width:200px;">Parameter</th>
+          <th>Wert</th>
+        </tr>
+        <tr>
+          <td>Endpunkt</td>
+          <td><code>github.com/fc21off/rfv-soundboard-app/releases/latest/download/latest.json</code></td>
+        </tr>
+        <tr>
+          <td>Verifizierung</td>
+          <td>Kryptographische Signatur mit Public Key</td>
+        </tr>
+        <tr>
+          <td>Fortschrittsanzeige</td>
+          <td>Echtzeit-Prozentbalken während des Downloads</td>
+        </tr>
+        <tr>
+          <td>Installation</td>
+          <td>Automatisch nach Download, gefolgt von einem App-Neustart via <code>tauri-plugin-process</code></td>
+        </tr>
+      </table>
+
+      <h3>13.1 Update-Ablauf</h3>
+      <ol>
+        <li>Im Einstellungsdialog auf <strong>„Nach Update suchen"</strong> klicken.</li>
+        <li>Falls eine neue Version verfügbar ist, wird die Versionsnummer angezeigt.</li>
+        <li>Auf <strong>„Jetzt installieren"</strong> klicken, um den Download zu starten.</li>
+        <li>Nach Abschluss des Downloads wird das Update automatisch installiert und die Anwendung neu gestartet.</li>
+      </ol>
+
+      <!-- ═══════ 14. TASTENKÜRZEL ═══════ -->
+      <h2 id="tastenkuerzel"><span class="sec-num">14.</span> Tastenkürzel</h2>
+
+      <table>
+        <tr>
+          <th>Taste</th>
+          <th>Aktion</th>
+          <th>Beschreibung</th>
+        </tr>
+        <tr>
+          <td><kbd>Escape</kbd></td>
+          <td>Not-Aus</td>
+          <td>Stoppt den aktuell laufenden Jingle sofort und löst ggf. den Spotify-Fade-In aus.</td>
+        </tr>
+        <tr>
+          <td><kbd>F11</kbd></td>
+          <td>Vollbild umschalten</td>
+          <td>Aktiviert/Deaktiviert den nativen Vollbildmodus.</td>
+        </tr>
+        <tr>
+          <td><kbd>Enter</kbd> / <kbd>Space</kbd></td>
+          <td>Pad auslösen</td>
+          <td>Startet den Jingle eines per Tabulator fokussierten Pads.</td>
+        </tr>
+      </table>
+
+      <!-- ═══════ 15. VOLLBILD ═══════ -->
+      <h2 id="vollbildmodus"><span class="sec-num">15.</span> Vollbildmodus</h2>
+
+      <p>
+        Der Vollbildmodus wird über die Taste <kbd>F11</kbd> oder den Vollbild-Button im Header aktiviert. 
+        Im Vollbildmodus werden die Windows-Taskleiste und der Fensterrahmen ausgeblendet. 
+        Dies verhindert versehentliche Interaktionen mit anderen Anwendungen während des Turnierbetriebs.
+      </p>
+      <p>
+        Die Funktion nutzt die Tauri-API <code>appWindow.setFullscreen()</code>. Der aktuelle Status 
+        wird über <code>appWindow.isFullscreen()</code> abgefragt und im State <code>isFullscreen</code> gehalten.
+      </p>
+
+      <hr>
+
+      <!-- ═══════ 16. ARCHITEKTUR ═══════ -->
+      <h2 id="architektur"><span class="sec-num">16.</span> Backend-Architektur</h2>
+
+      <p>
+        Das Rust-Backend besteht aus vier Modulen:
+      </p>
+
+      <table>
+        <tr>
+          <th>Modul</th>
+          <th>Datei</th>
+          <th>Verantwortlichkeit</th>
+        </tr>
+        <tr>
+          <td><strong>Hauptmodul</strong></td>
+          <td><code>lib.rs</code></td>
+          <td>Tauri-Setup, Kommando-Registrierung, State-Management, Queue-Logik, Jingle-Orchestrierung</td>
+        </tr>
+        <tr>
+          <td><strong>Audio-Engine</strong></td>
+          <td><code>audio_player.rs</code></td>
+          <td>rodio-basierte Wiedergabe, Fade-Out in Hintergrund-Threads, Loop-Unterstützung, Generation-Tracking</td>
+        </tr>
+        <tr>
+          <td><strong>WASAPI</strong></td>
+          <td><code>windows_audio.rs</code></td>
+          <td>Spotify-Prozesserkennung, Mixer-Lautstärke, Mute-Steuerung, Media-Key-Simulation, Auto-Ducking</td>
+        </tr>
+        <tr>
+          <td><strong>Konfiguration</strong></td>
+          <td><code>config.rs</code></td>
+          <td>Persistente JSON-Speicherung, atomare Schreibvorgänge, Schema-Migration</td>
+        </tr>
+      </table>
+
+      <h3>16.1 State-Management</h3>
+      <p>
+        Der globale Anwendungszustand wird in einem Tauri-<code>State</code>-Struct verwaltet. 
+        Alle darin enthaltenen Felder sind mit <code>Mutex</code> geschützt, um thread-sichere 
+        Zugriffe aus parallelen IPC-Handlern und Hintergrund-Threads zu gewährleisten.
+      </p>
+
+      <h3>16.2 Generation-Tracking</h3>
+      <p>
+        Ein <code>AtomicU64</code>-Counter wird bei jedem Start und Stopp eines Jingles inkrementiert. 
+        Hintergrund-Threads (z. B. für Fade-Out) prüfen den Counter vor jedem Schritt und brechen ab, 
+        falls zwischenzeitlich ein neuer Wiedergabebefehl ergangen ist. Dies verhindert Race Conditions.
+      </p>
+
+      <!-- ═══════ 17. IPC-KOMMANDOS ═══════ -->
+      <h2 id="ipc-kommandos"><span class="sec-num">17.</span> IPC-Kommandos</h2>
+
+      <p>
+        Das Frontend kommuniziert mit dem Backend über Tauri-<code>invoke</code>-Aufrufe. 
+        Folgende Kommandos sind registriert:
+      </p>
+
+      <h3>17.1 Konfiguration &amp; State</h3>
+      <table>
+        <tr><th>Kommando</th><th>Beschreibung</th></tr>
+        <tr><td><code>get_config</code></td><td>Liefert die aktuelle Anwendungskonfiguration als JSON-Objekt.</td></tr>
+        <tr><td><code>save_config_cmd</code></td><td>Speichert die übergebene Konfiguration persistent auf die Festplatte.</td></tr>
+        <tr><td><code>get_active_category</code></td><td>Gibt die ID der aktuell spielenden Kategorie zurück (oder leer, wenn keine aktiv ist).</td></tr>
+      </table>
+
+      <h3>17.2 Dateiverwaltung</h3>
+      <table>
+        <tr><th>Kommando</th><th>Beschreibung</th></tr>
+        <tr><td><code>select_audio_files</code></td><td>Öffnet den nativen Windows-Dateidialog und gibt die ausgewählten Dateipfade zurück.</td></tr>
+        <tr><td><code>get_song_duration</code></td><td>Berechnet und gibt die Wiedergabedauer einer Audiodatei in Sekunden zurück.</td></tr>
+      </table>
+
+      <h3>17.3 Warteschlangen</h3>
+      <table>
+        <tr><th>Kommando</th><th>Beschreibung</th></tr>
+        <tr><td><code>add_to_queue</code></td><td>Fügt einen Song ans Ende der Warteschlange einer Kategorie hinzu.</td></tr>
+        <tr><td><code>remove_from_queue</code></td><td>Entfernt einen Song aus der Warteschlange anhand seiner Position.</td></tr>
+        <tr><td><code>get_queues</code></td><td>Gibt alle Warteschlangen als Map zurück.</td></tr>
+        <tr><td><code>set_queue</code></td><td>Überschreibt die Warteschlange einer Kategorie mit einer neuen Liste.</td></tr>
+        <tr><td><code>toggle_queue_lock</code></td><td>Schaltet die Warteschlangen-Sperre für eine Kategorie um.</td></tr>
+        <tr><td><code>get_queue_locks</code></td><td>Gibt die Liste aller gesperrten Kategorien zurück.</td></tr>
+      </table>
+
+      <h3>17.4 Jingle-Wiedergabe</h3>
+      <table>
+        <tr><th>Kommando</th><th>Beschreibung</th></tr>
+        <tr><td><code>play_category_jingle</code></td><td>Startet die Wiedergabe eines Jingles für die angegebene Kategorie.</td></tr>
+        <tr><td><code>stop_current_jingle</code></td><td>Stoppt den aktuell laufenden Jingle (mit Fade-Out).</td></tr>
+        <tr><td><code>is_jingle_playing</code></td><td>Gibt zurück, ob aktuell ein Jingle abgespielt wird.</td></tr>
+        <tr><td><code>set_jingle_volume</code></td><td>Setzt die Wiedergabelautstärke des aktiven Jingles in Echtzeit.</td></tr>
+        <tr><td><code>mute_all</code></td><td>Schaltet alle Audiokanäle der Anwendung stumm.</td></tr>
+      </table>
+
+      <h3>17.5 Spotify-Steuerung</h3>
+      <table>
+        <tr><th>Kommando</th><th>Beschreibung</th></tr>
+        <tr><td><code>toggle_spotify</code></td><td>Sendet ein globales <code>VK_MEDIA_PLAY_PAUSE</code> Event.</td></tr>
+        <tr><td><code>set_spotify_mixer_volume</code></td><td>Setzt die Spotify-Lautstärke im Windows-Mixer (0.0 – 1.0).</td></tr>
+        <tr><td><code>set_spotify_mixer_mute</code></td><td>Setzt den Mute-Status von Spotify im Windows-Mixer.</td></tr>
+        <tr><td><code>get_spotify_playback_state</code></td><td>Gibt den aktuellen Wiedergabestatus von Spotify zurück.</td></tr>
+      </table>
+
+      <!-- ═══════ 18. KONFIGURATION ═══════ -->
+      <h2 id="konfiguration"><span class="sec-num">18.</span> Konfigurationsdatei</h2>
+
+      <p>
+        Die Anwendungskonfiguration wird als <code>config.json</code> im AppData-Verzeichnis der Anwendung 
+        gespeichert. Schreibvorgänge sind atomar implementiert: Die Daten werden zunächst in eine temporäre Datei 
+        (<code>config.json.tmp</code>) geschrieben und anschließend umbenannt.
+      </p>
+
+      <h3>18.1 Konfigurationsfelder</h3>
+      <table>
+        <tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr>
+        <tr><td><code>volumes</code></td><td>Map&lt;String, f64&gt;</td><td>Lautstärkewerte pro Kategorie (0.0–1.0)</td></tr>
+        <tr><td><code>mutes</code></td><td>Map&lt;String, bool&gt;</td><td>Mute-Status pro Kategorie</td></tr>
+        <tr><td><code>theme</code></td><td>String</td><td><code>"dark"</code> oder <code>"light"</code></td></tr>
+        <tr><td><code>language</code></td><td>String</td><td><code>"de"</code> oder <code>"en"</code></td></tr>
+        <tr><td><code>fade_out_duration_ms</code></td><td>u32</td><td>Jingle Fade-Out-Dauer in Millisekunden</td></tr>
+        <tr><td><code>spotify_fade_duration_ms</code></td><td>u32</td><td>Spotify Fade-In-Dauer in Millisekunden</td></tr>
+        <tr><td><code>spotify_auto_fade_in</code></td><td>bool</td><td>Auto Fade-In aktiviert/deaktiviert</td></tr>
+        <tr><td><code>looping</code></td><td>bool</td><td>Loop-Modus aktiviert/deaktiviert</td></tr>
+        <tr><td><code>categories</code></td><td>Map&lt;String, Vec&lt;String&gt;&gt;</td><td>Song-Pools pro Kategorie (Dateipfade)</td></tr>
+      </table>
+
+      <h3>18.2 Schema-Migration</h3>
+      <p>
+        Beim Laden der Konfiguration wird geprüft, ob alle fünf Standard-Kategorien 
+        (<code>pruefung</code>, <code>fehlerfrei</code>, <code>einlauf</code>, <code>siegerrunde</code>, <code>tusch</code>) 
+        vorhanden sind. Fehlende Kategorien werden automatisch mit einem leeren Song-Pool angelegt.
+      </p>
+
+      <!-- ═══════ 19. AUDIO-ENGINE ═══════ -->
+      <h2 id="audio-engine"><span class="sec-num">19.</span> Audio-Engine</h2>
+
+      <p>
+        Die Audio-Engine basiert auf der Rust-Bibliothek <code>rodio</code> und befindet sich in 
+        <code>audio_player.rs</code>.
+      </p>
+
+      <h3>19.1 Funktionsumfang</h3>
+      <ul>
+        <li><strong>Wiedergabe:</strong> Dekodierung und Wiedergabe der unterstützten Formate über einen <code>OutputStream</code> und <code>Sink</code>.</li>
+        <li><strong>Fade-Out:</strong> Beim Stoppen wird die Lautstärke in einem separaten Thread schrittweise auf 0 reduziert (Dauer konfigurierbar).</li>
+        <li><strong>Loop:</strong> Im Loop-Modus (<code>play_loop</code>) wird der Decoder nach Beendigung erneut instanziiert.</li>
+        <li><strong>Lautstärke:</strong> Echtzeitsteuerung über <code>Sink::set_volume()</code>.</li>
+        <li><strong>Sofortstopp:</strong> Über <code>Sink::stop()</code> ohne Fade-Out.</li>
+      </ul>
+
+      <h3>19.2 Concurrency</h3>
+      <p>
+        Der <code>AtomicU64</code> Generation-Counter stellt sicher, dass ein Fade-Out-Thread, der für 
+        einen bestimmten Jingle gestartet wurde, sich selbst beendet, falls zwischenzeitlich ein anderer 
+        Jingle gestartet oder gestoppt wurde. Jeder Thread prüft vor jedem Fade-Schritt, ob seine 
+        gespeicherte Generation noch dem aktuellen Zählerstand entspricht.
+      </p>
+
+      <!-- ═══════ 20. WASAPI ═══════ -->
+      <h2 id="wasapi"><span class="sec-num">20.</span> WASAPI-Integration</h2>
+
+      <p>
+        Die Datei <code>windows_audio.rs</code> enthält die direkte Anbindung an die Windows Audio Session API.
+      </p>
+
+      <h3>20.1 Verwendete COM-Interfaces</h3>
+      <table>
+        <tr><th>Interface</th><th>Verwendung</th></tr>
+        <tr><td><code>IAudioSessionManager2</code></td><td>Enumeration aller aktiven Audio-Sessions auf dem Standard-Ausgabegerät</td></tr>
+        <tr><td><code>IAudioSessionEnumerator</code></td><td>Iteration über die Session-Liste</td></tr>
+        <tr><td><code>IAudioSessionControl2</code></td><td>Abfrage der Prozess-ID pro Session</td></tr>
+        <tr><td><code>ISimpleAudioVolume</code></td><td>Setzen von Lautstärke und Mute-Status einer Session</td></tr>
+      </table>
+
+      <h3>20.2 Prozessidentifikation</h3>
+      <p>
+        Für jede Audio-Session wird die Prozess-ID (PID) über <code>IAudioSessionControl2::GetProcessId()</code> 
+        ermittelt. Anschließend wird der Prozessname über 
+        <code>OpenProcess</code> + <code>GetModuleBaseNameW</code> aus dem Modul <code>Win32_System_ProcessStatus</code> 
+        aufgelöst und gegen den Wert <code>"spotify"</code> (case-insensitive) abgeglichen.
+      </p>
+
+      <h3>20.3 Auto-Ducking-Ablauf</h3>
+      <ol>
+        <li>Jingle startet → <code>set_spotify_mixer_mute(true)</code> wird aufgerufen.</li>
+        <li>Jingle endet → Ein Hintergrund-Thread wird gestartet.</li>
+        <li>Der Thread setzt <code>set_spotify_mixer_mute(false)</code> und erhöht die Spotify-Lautstärke schrittweise vom Wert 0 bis zum konfigurierten Zielpegel über die Dauer <code>spotify_fade_duration_ms</code>.</li>
+      </ol>
+
+      <hr>
+
+      <!-- ═══════ ANHANG: EINSATZHINWEISE ═══════ -->
+      <h2 id="einsatzhinweise"><span class="sec-num">A.</span> Einsatzhinweise</h2>
+
+      <ol>
+        <li><strong>Tag-Modus bei Außenplätzen verwenden.</strong> Der helle Design-Modus bietet deutlich bessere Ablesbarkeit bei direkter Sonneneinstrahlung.</li>
+        <li><strong>Vollbildmodus aktivieren.</strong> Durch Drücken von <kbd>F11</kbd> wird verhindert, dass andere Windows-Fenster versehentlich in den Vordergrund geraten.</li>
+        <li><strong>Warteschlangen-Sperre für wiederkehrende Signale nutzen.</strong> Beispiel: Den Startgong in der Kategorie „Prüfung eröffnen" an Position #1 setzen und die Warteschlange sperren.</li>
+        <li><strong>Spotify-Fader auf -12 dB bis -18 dB einstellen.</strong> Dieser Pegelbereich verhindert, dass die Hintergrundmusik Sprecherdurchsagen übertönt.</li>
+        <li><strong>Audiodateien lokal speichern.</strong> Dateien sollten auf der internen Festplatte liegen, nicht auf USB-Sticks oder Netzlaufwerken, um Ausfälle durch Verbindungsabbrüche zu vermeiden.</li>
+        <li><strong>Testlauf vor Turnierbeginn durchführen.</strong> Alle Kategorien und Warteschlangen mit den tatsächlichen Audiodateien testen, um fehlende oder fehlerhafte Dateien frühzeitig zu erkennen.</li>
+      </ol>
+
+      <div class="callout warn">
+        <div class="callout-label">Wichtig</div>
+        <p>
+          Die Spotify-Steuerung setzt voraus, dass die Spotify Desktop-Anwendung gestartet und eingeloggt ist. 
+          Die Web-Version oder der Microsoft Store-Client werden nicht zuverlässig erkannt.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="doc-footer">
+        <p>EquiSound v2.3.1 · RFV Leonberg e.V. – Technische Kommission</p>
+        <p>Dokument erstellt am <span id="footerDate"></span></p>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Date
+    const dateStr = new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('docDate').textContent = dateStr;
+    document.getElementById('footerDate').textContent = dateStr;
+
+    // Active nav tracking
+    const sections = document.querySelectorAll('[id]');
+    const navLinks = document.querySelectorAll('.doc-sidebar a[href^="#"]');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '-80px 0px -70% 0px' });
+
+    sections.forEach(s => {
+      if (document.querySelector('.doc-sidebar a[href="#' + s.id + '"]')) {
+        observer.observe(s);
+      }
+    });
+
+    // Mobile nav close on link click
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelector('.doc-sidebar').classList.remove('open');
+      });
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+</html>
