@@ -189,13 +189,16 @@ where
         }
 
         // Fade in loop
-        let steps = 20;
-        let step_duration = duration / steps;
+        let steps = (duration.as_millis() / 15).max(10) as usize;
+        let step_duration = duration / steps as u32;
         for step in 1..=steps {
             if is_cancelled() {
                 return Ok(());
             }
-            let current_vol = (step as f32 / steps as f32) * target_volume;
+            let t = step as f32 / steps as f32;
+            // S-curve smoothstep for natural Spotify fade-in
+            let factor = t * t * (3.0 - 2.0 * t);
+            let current_vol = factor * target_volume;
             for vol_control in &spotify_volumes {
                 let _ = vol_control.SetMasterVolume(current_vol, std::ptr::null());
             }

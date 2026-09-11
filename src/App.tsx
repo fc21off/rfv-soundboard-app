@@ -106,6 +106,11 @@ const TRANSLATIONS = {
     infoPurpose: "Zweck",
     infoPurposeVal: "Offizielle Turniersound-Konsole",
     infoRights: "Alle Rechte vorbehalten.",
+    inQueueSingular: "in Warteschlange",
+    inQueuePlural: "in Warteschlange",
+    nextTitles: "NÄCHSTE TITEL:",
+    andMore: "... und",
+    andMoreSuffix: "weitere",
   },
   en: {
     title: "EQUISOUND",
@@ -177,6 +182,11 @@ const TRANSLATIONS = {
     infoPurpose: "Purpose",
     infoPurposeVal: "Official tournament sound console",
     infoRights: "All rights reserved.",
+    inQueueSingular: "in queue",
+    inQueuePlural: "in queue",
+    nextTitles: "NEXT TRACKS:",
+    andMore: "... and",
+    andMoreSuffix: "more",
   }
 };
 
@@ -352,6 +362,8 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [playingSong, setPlayingSong] = useState<string | null>(null);
+  const [activeTusch, setActiveTusch] = useState<string | null>(null);
+  const [playingTuschSong, setPlayingTuschSong] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [spotifyPlaying, setSpotifyPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -554,9 +566,7 @@ function App() {
     }
     categoryVolumeLock.current[categoryId] = true;
     try {
-      if (activeCategoryRef.current === categoryId) {
-        await invoke("set_jingle_volume", { vol });
-      }
+      await invoke("set_jingle_volume", { categoryId, vol });
     } catch (err) {
       console.error(err);
     }
@@ -584,6 +594,12 @@ function App() {
   const [songDurations, setSongDurations] = useState<Record<string, number>>({});
   const [jingleElapsed, setJingleElapsed] = useState<number>(0);
   const fetchedPathsRef = useRef<Set<string>>(new Set());
+
+  // Ref for jingle loop to prevent resetting timer on loop toggle
+  const isLoopActiveRef = useRef(config?.jingle_loop ?? false);
+  useEffect(() => {
+    isLoopActiveRef.current = config?.jingle_loop ?? false;
+  }, [config?.jingle_loop]);
 
   // Helper to format seconds to mm:ss
   function formatDuration(seconds: number | undefined | null): string {
@@ -630,6 +646,9 @@ function App() {
     if (playingSong && playingSong !== "...") {
       paths.add(playingSong);
     }
+    if (playingTuschSong && playingTuschSong !== "...") {
+      paths.add(playingTuschSong);
+    }
 
     paths.forEach(async (path) => {
       if (!fetchedPathsRef.current.has(path)) {
@@ -643,9 +662,9 @@ function App() {
         }
       }
     });
-  }, [config, queues, playingSong]);
+  }, [config, queues, playingSong, playingTuschSong]);
 
-  // Track elapsed time for active jingle playing (and handle loop wrapping)
+  // Track elapsed time for active jingle playing (and handle loop wrapping without timer reset)
   useEffect(() => {
     if (!activeCategory || !playingSong || playingSong === "...") {
       setJingleElapsed(0);
@@ -660,7 +679,7 @@ function App() {
       
       const duration = songDurations[playingSong];
       if (duration && duration > 0) {
-        if (config?.jingle_loop) {
+        if (isLoopActiveRef.current) {
           setJingleElapsed(elapsedSec % duration);
         } else {
           setJingleElapsed(Math.min(elapsedSec, duration));
@@ -678,9 +697,9 @@ function App() {
       clearInterval(interval);
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [activeCategory, playingSong, config?.jingle_loop, songDurations]);
+  }, [activeCategory, playingSong, songDurations]);
 
-  // Fullscreen keyboard listener (F11) and state check on mount
+  // Fullscreen keyboard listener (F11) and Escape stop
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "F11") {
@@ -702,6 +721,8 @@ function App() {
           await invoke("stop_current_jingle", { immediate: true });
           setActiveCategory(null);
           setPlayingSong(null);
+          setActiveTusch(null);
+          setPlayingTuschSong(null);
         } catch (err) {
           console.error("Escape key stop failed:", err);
         }
@@ -737,10 +758,6 @@ function App() {
     }
   }
 
-
-
-
-
   // Poll for audio playback status to auto-unmute Spotify and reset state
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -749,6 +766,12 @@ function App() {
         setActiveCategory(activeCat);
         if (!activeCat) {
           setPlayingSong(null);
+        }
+
+        const activeT = await invoke<string | null>("get_active_tusch");
+        setActiveTusch(activeT);
+        if (!activeT) {
+          setPlayingTuschSong(null);
         }
         
         // Poll Spotify active session state
@@ -871,12 +894,32 @@ function App() {
     }
   }
 
-  // Trigger Jingle Pad
+  // Trigger Jingle Pad (handles Siegertusch overlay layering specially)
   async function handleTriggerJingle(categoryId: string) {
     if (!config || config.master_mute) return;
     setErrorMessage(null);
     
-    // Toggle behavior: If clicking the active category, stop it
+    if (categoryId === "tusch") {
+      // Toggle behavior for Siegertusch overlay
+      if (activeTusch) {
+        await handleStopTusch();
+        return;
+      }
+      try {
+        setActiveTusch("...");
+        setPlayingTuschSong("...");
+        const songName = await invoke<string>("play_category_jingle", { categoryId: "tusch" });
+        setActiveTusch(songName);
+        setPlayingTuschSong(songName);
+      } catch (err) {
+        setActiveTusch(null);
+        setPlayingTuschSong(null);
+        setErrorMessage(t.errorNoSongs);
+      }
+      return;
+    }
+
+    // Toggle behavior for standard 4 categories: If clicking the active category, stop it
     if (activeCategory === categoryId) {
       await handleStopJingle(false);
       return;
@@ -894,6 +937,16 @@ function App() {
     }
   }
 
+  // Stop Siegertusch only
+  async function handleStopTusch() {
+    try {
+      await invoke("stop_tusch_cmd");
+      setActiveTusch(null);
+      setPlayingTuschSong(null);
+    } catch (err) {
+      console.error("Failed to stop tusch:", err);
+    }
+  }
 
   // Stop Jingle
   async function handleStopJingle(immediate: boolean = false) {
@@ -901,6 +954,8 @@ function App() {
       await invoke("stop_current_jingle", { immediate });
       setActiveCategory(null);
       setPlayingSong(null);
+      setActiveTusch(null);
+      setPlayingTuschSong(null);
     } catch (err) {
       console.error("Failed to stop jingle:", err);
     }
@@ -1169,7 +1224,7 @@ function App() {
                 title={t.spotifyToggle}
               >
                 <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.893-.982-.336.075-.668-.135-.744-.47-.077-.337.135-.669.47-.745 3.848-.879 7.143-.51 9.82.13.296.18.387.563.207.86zm1.224-2.723c-.226.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.08-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.67-1.114 8.24-.57 11.35 1.346.366.226.486.707.256 1.068zm.105-2.81c-3.26-1.937-8.644-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.151-.5.133-1.026.633-1.178 3.596-1.092 9.539-.882 13.3 1.348.448.266.596.843.33 1.291-.266.449-.842.597-1.29.33-.001 0-.002-.001-.003-.002z"/>
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                 </svg>
               </button>
 
@@ -1205,9 +1260,9 @@ function App() {
               {config.master_mute ? t.masterUnmute : t.masterMute}
             </button>
             <button 
-              className={`stop-jingle-btn ${activeCategory ? "active" : ""}`}
+              className={`stop-jingle-btn ${activeCategory || activeTusch ? "active" : ""}`}
               onClick={() => handleStopJingle(true)}
-              disabled={!activeCategory}
+              disabled={!activeCategory && !activeTusch}
             >
               STOP ACTIVE JINGLE
             </button>
@@ -1235,14 +1290,14 @@ function App() {
           <div className="panel-card tusch-card">
             <span className="system-title">{t.tusch}</span>
             <div
-              className={`tusch-pad-btn tusch ${activeCategory === "tusch" ? "playing" : ""} ${(config.master_mute && activeCategory !== "tusch") ? "disabled" : ""}`}
+              className={`tusch-pad-btn tusch ${activeTusch ? "playing" : ""} ${(config.master_mute && !activeTusch) ? "disabled" : ""}`}
               role="button"
               tabIndex={0}
               onClick={() => {
-                if (!config.master_mute || activeCategory === "tusch") handleTriggerJingle("tusch");
+                if (!config.master_mute || activeTusch) handleTriggerJingle("tusch");
               }}
               onKeyDown={(e) => {
-                if ((e.key === "Enter" || e.key === " ") && (!config.master_mute || activeCategory === "tusch")) {
+                if ((e.key === "Enter" || e.key === " ") && (!config.master_mute || activeTusch)) {
                   e.preventDefault();
                   handleTriggerJingle("tusch");
                 }
@@ -1255,7 +1310,7 @@ function App() {
 
               {/* Centered Visual Element */}
               <div className="pad-center-content">
-                {activeCategory === "tusch" ? (
+                {activeTusch ? (
                   <div className="active-visual">
                     <div className="waveform-animation playing">
                       <span className="bar bar1"></span>
@@ -1267,18 +1322,13 @@ function App() {
                       <span className="bar bar7"></span>
                     </div>
                     <div className="active-song-name">
-                      {playingSong ? truncateFileName(playingSong, 38) : "..."}
+                      {playingTuschSong ? truncateFileName(playingTuschSong, 38) : "..."}
                     </div>
-                    {playingSong && playingSong !== "..." && getRemainingTimeStr() !== "" && (
-                      <div className="remaining-time-badge">
-                        {getRemainingTimeStr()}
-                      </div>
-                    )}
                   </div>
                 ) : (
                   (queues["tusch"] && queues["tusch"].length > 0) ? (
                     <div className="pad-queue-list">
-                      <span className="queue-title">NÄCHSTE TITEL:</span>
+                      <span className="queue-title">{t.nextTitles}</span>
                       {queues["tusch"].slice(0, 2).map((songPath, idx) => (
                         <div key={songPath} className={`pad-queue-item ${idx === 0 && lockedQueues.includes("tusch") ? "first-locked" : ""}`}>
                           <span className="queue-num">#{idx + 1}</span>
@@ -1296,7 +1346,7 @@ function App() {
                         </div>
                       ))}
                       {queues["tusch"].length > 2 && (
-                        <span className="queue-more">... und {queues["tusch"].length - 2} weitere</span>
+                        <span className="queue-more">{t.andMore} {queues["tusch"].length - 2} {t.andMoreSuffix}</span>
                       )}
                     </div>
                   ) : (
@@ -1316,7 +1366,7 @@ function App() {
               </div>
 
               <div className="tusch-pad-status">
-                <span>{activeCategory === "tusch" ? t.jingleActive : t.jingleIdle}</span>
+                <span>{activeTusch ? t.jingleActive : t.jingleIdle}</span>
                 <span>
                   {config.categories.tusch?.songs.length || 0} {config.categories.tusch?.songs.length === 1 ? t.songsCountSingle : t.songsCountPlural}
                   {queues["tusch"] && queues["tusch"].length > 0 && ` (${queues["tusch"].length} Q)`}
@@ -1399,7 +1449,7 @@ function App() {
                     ) : (
                       (queues[cat.id] && queues[cat.id].length > 0) ? (
                         <div className="pad-queue-list">
-                          <span className="queue-title">NÄCHSTE TITEL:</span>
+                          <span className="queue-title">{t.nextTitles}</span>
                           {queues[cat.id].slice(0, 2).map((songPath, idx) => (
                             <div key={songPath} className={`pad-queue-item ${idx === 0 && lockedQueues.includes(cat.id) ? "first-locked" : ""}`}>
                               <span className="queue-num">#{idx + 1}</span>
@@ -1417,7 +1467,7 @@ function App() {
                             </div>
                           ))}
                           {queues[cat.id].length > 2 && (
-                            <span className="queue-more">... und {queues[cat.id].length - 2} weitere</span>
+                            <span className="queue-more">{t.andMore} {queues[cat.id].length - 2} {t.andMoreSuffix}</span>
                           )}
                         </div>
                       ) : (
@@ -1443,7 +1493,7 @@ function App() {
                     </span>
                     <span>
                       {songCount} {songCount === 1 ? t.songsCountSingle : t.songsCountPlural}
-                      {queues[cat.id] && queues[cat.id].length > 0 && ` (${queues[cat.id].length} in Warteschlange)`}
+                      {queues[cat.id] && queues[cat.id].length > 0 && ` (${queues[cat.id].length} ${t.inQueuePlural})`}
                     </span>
                   </div>
                 </div>

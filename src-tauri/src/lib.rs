@@ -17,6 +17,7 @@ pub struct AppState {
     pub config: Mutex<AppConfig>,
     pub queues: Mutex<std::collections::HashMap<String, Vec<String>>>,
     pub active_category: Mutex<Option<String>>,
+    pub active_tusch: Mutex<Option<String>>,
     pub queue_locks: Mutex<std::collections::HashSet<String>>,
 }
 
@@ -35,7 +36,7 @@ fn save_config_cmd(app: AppHandle, state: State<'_, AppState>, config: AppConfig
     
     // Apply changes if Spotify mute/volume changed
     if local_config.spotify_mute != config.spotify_mute {
-        let is_jingle_active = state.active_category.lock().unwrap().is_some();
+        let is_jingle_active = state.active_category.lock().unwrap().is_some() || state.active_tusch.lock().unwrap().is_some();
         if !config.spotify_mute && (is_jingle_active || config.master_mute) {
             // Keep muted in the mixer for now; the thread or stop event will unmute it later.
         } else {
@@ -77,7 +78,7 @@ fn set_spotify_mixer_volume(vol: f32) -> Result<(), String> {
 #[tauri::command]
 fn set_spotify_mixer_mute(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
     let config = state.config.lock().unwrap();
-    let is_jingle_active = state.active_category.lock().unwrap().is_some();
+    let is_jingle_active = state.active_category.lock().unwrap().is_some() || state.active_tusch.lock().unwrap().is_some();
     if !mute && (is_jingle_active || config.master_mute) {
         // Keep muted in the mixer for now; the thread or stop event will unmute it later.
         Ok(())
@@ -88,9 +89,6 @@ fn set_spotify_mixer_mute(state: State<'_, AppState>, mute: bool) -> Result<(), 
 
 #[tauri::command]
 fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id: String) -> Result<String, String> {
-    // Stop any running sound immediately since we are transitioning to a new state
-    state.player.stop_immediate();
-
     let config = state.config.lock().unwrap().clone();
     
     let category = config.categories.get(&category_id)
@@ -130,10 +128,107 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
     // First, mute Spotify in the mixer
     let _ = windows_audio::mute_spotify(true);
     
-    // Play the song at the category's specific volume
-    // If master mute is on, play at 0 volume, otherwise category volume
     let play_vol = if config.master_mute { 0.0 } else { category.volume };
-    
+
+    if category_id == "tusch" {
+        // Play as overlay fanfare without stopping any active background jingle
+        {
+            let mut active_t = state.active_tusch.lock().unwrap();
+            *active_t = Some(selected_song.clone());
+        }
+
+        // If a main category is currently active, smoothly fade out its volume to 0.0 (300ms)
+        let active_cat_opt = state.active_category.lock().unwrap().clone();
+        if let Some(_main_cat_id) = &active_cat_opt {
+            state.player.fade_volume(0.0, Duration::from_millis(300));
+        }
+
+        if let Err(err) = state.player.play_overlay(&selected_song, play_vol) {
+            {
+                let mut active_t = state.active_tusch.lock().unwrap();
+                *active_t = None;
+            }
+            if let Some(main_cat_id) = &active_cat_opt {
+                let main_vol = config.categories.get(main_cat_id).map(|c| c.volume).unwrap_or(0.8);
+                let restore_vol = if config.master_mute { 0.0 } else { main_vol };
+                state.player.fade_volume(restore_vol, Duration::from_millis(300));
+            } else if !config.spotify_mute && !config.master_mute {
+                let _ = windows_audio::mute_spotify(false);
+            }
+            return Err(err);
+        }
+
+        let overlay_sink_clone = state.player.get_overlay_sink_clone();
+        let overlay_gen_clone = state.player.get_overlay_generation_clone();
+        let overlay_gen = state.player.get_current_overlay_generation();
+        let app_clone = app.clone();
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            loop {
+                std::thread::sleep(Duration::from_millis(150));
+                
+                if overlay_gen_clone.load(std::sync::atomic::Ordering::SeqCst) != overlay_gen {
+                    break;
+                }
+
+                let is_finished = {
+                    let sink_lock = overlay_sink_clone.lock().unwrap();
+                    if let Some(sink) = &*sink_lock {
+                        sink.empty()
+                    } else {
+                        true
+                    }
+                };
+
+                if is_finished {
+                    if let Some(app_state) = app_clone.try_state::<AppState>() {
+                        {
+                            let mut active_t = app_state.active_tusch.lock().unwrap();
+                            *active_t = None;
+                        }
+
+                        let cfg = app_state.config.lock().unwrap().clone();
+                        let active_cat = app_state.active_category.lock().unwrap().clone();
+
+                        if let Some(main_cat_id) = active_cat {
+                            // Main jingle is still playing -> smoothly fade back in to full volume (600ms)
+                            let cat_vol = cfg.categories.get(&main_cat_id).map(|c| c.volume).unwrap_or(0.8);
+                            let target_vol = if cfg.master_mute { 0.0 } else { cat_vol };
+                            app_state.player.fade_volume(target_vol, Duration::from_millis(600));
+                        } else {
+                            // No main jingle running -> fade in Spotify if enabled
+                            if cfg.spotify_auto_fade_in && !cfg.spotify_mute && !cfg.master_mute {
+                                let target_vol = cfg.spotify_volume;
+                                let fade_duration = Duration::from_millis(cfg.spotify_fade_duration_ms as u64);
+                                let gen_check = overlay_gen_clone.clone();
+                                let app_state_clone = app_clone.clone();
+                                let _ = windows_audio::fade_in_spotify(target_vol, fade_duration, move || {
+                                    if gen_check.load(std::sync::atomic::Ordering::SeqCst) != overlay_gen {
+                                        return true;
+                                    }
+                                    if let Some(st) = app_state_clone.try_state::<AppState>() {
+                                        let c = st.config.lock().unwrap();
+                                        c.master_mute || c.spotify_mute || !c.spotify_auto_fade_in
+                                    } else {
+                                        true
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+
+        return Ok(selected_song);
+    }
+
+    // Otherwise: normal main category jingle
+    // Stop any running main sound immediately since we are transitioning to a new state
+    state.player.stop_immediate();
+
     // Set active category right before playing
     {
         let mut active_cat = state.active_category.lock().unwrap();
@@ -146,7 +241,7 @@ fn play_category_jingle(app: AppHandle, state: State<'_, AppState>, category_id:
             let mut active_cat = state.active_category.lock().unwrap();
             *active_cat = None;
         }
-        if !config.spotify_mute && !config.master_mute {
+        if !config.spotify_mute && !config.master_mute && state.active_tusch.lock().unwrap().is_none() {
             let _ = windows_audio::mute_spotify(false);
         }
         return Err(err);
@@ -296,16 +391,20 @@ fn set_queue(state: State<'_, AppState>, category_id: String, new_queue: Vec<Str
 
 #[tauri::command]
 fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bool) {
-    // Clear active category
+    // Clear active category and active tusch
     {
         let mut active_cat = state.active_category.lock().unwrap();
         *active_cat = None;
+    }
+    {
+        let mut active_t = state.active_tusch.lock().unwrap();
+        *active_t = None;
     }
 
     let config = state.config.lock().unwrap().clone();
     
     if immediate {
-        state.player.stop_immediate();
+        state.player.stop_all_immediate();
         
         let gen_now = state.player.get_current_generation();
         let gen_clone = state.player.get_generation_clone();
@@ -328,6 +427,7 @@ fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bo
             });
         }
     } else {
+        state.player.stop_overlay_immediate();
         state.player.stop_fade(Duration::from_millis(config.fade_duration_ms as u64));
         let gen_after_fade = state.player.get_current_generation();
         let gen_clone = state.player.get_generation_clone();
@@ -349,7 +449,7 @@ fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bo
                 }
 
                 if let Some(app_state) = app_clone.try_state::<AppState>() {
-                    let is_cat_active = app_state.active_category.lock().unwrap().is_some();
+                    let is_cat_active = app_state.active_category.lock().unwrap().is_some() || app_state.active_tusch.lock().unwrap().is_some();
                     let cfg = app_state.config.lock().unwrap().clone();
                     if !is_cat_active && cfg.spotify_auto_fade_in && !cfg.spotify_mute && !cfg.master_mute {
                         let gen_inner = gen_clone.clone();
@@ -372,6 +472,44 @@ fn stop_current_jingle(app: AppHandle, state: State<'_, AppState>, immediate: bo
     }
 }
 
+#[tauri::command]
+fn stop_tusch_cmd(app: AppHandle, state: State<'_, AppState>) {
+    state.player.stop_overlay_immediate();
+    {
+        let mut active_t = state.active_tusch.lock().unwrap();
+        *active_t = None;
+    }
+
+    let config = state.config.lock().unwrap().clone();
+    let active_cat = state.active_category.lock().unwrap().clone();
+
+    if let Some(cat_id) = active_cat {
+        // Restore volume for main category smoothly (600ms)
+        let cat_vol = config.categories.get(&cat_id).map(|c| c.volume).unwrap_or(0.8);
+        let target_vol = if config.master_mute { 0.0 } else { cat_vol };
+        state.player.fade_volume(target_vol, Duration::from_millis(600));
+    } else {
+        // No main category playing -> fade in Spotify if enabled
+        if config.spotify_auto_fade_in && !config.spotify_mute && !config.master_mute {
+            let target_vol = config.spotify_volume;
+            let spotify_fade_duration = Duration::from_millis(config.spotify_fade_duration_ms as u64);
+            let app_clone = app.clone();
+            let gen_clone = state.player.get_generation_clone();
+            let gen_now = state.player.get_current_generation();
+            let _ = windows_audio::fade_in_spotify(target_vol, spotify_fade_duration, move || {
+                if gen_clone.load(std::sync::atomic::Ordering::SeqCst) != gen_now {
+                    return true;
+                }
+                if let Some(st) = app_clone.try_state::<AppState>() {
+                    let cfg = st.config.lock().unwrap();
+                    cfg.master_mute || cfg.spotify_mute || !cfg.spotify_auto_fade_in
+                } else {
+                    true
+                }
+            });
+        }
+    }
+}
 
 #[tauri::command]
 fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
@@ -379,15 +517,22 @@ fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
     config.master_mute = mute;
     
     if mute {
-        // Mute both player and Spotify
+        // Mute both player sinks and Spotify
         state.player.set_volume(0.0);
+        state.player.set_overlay_volume(0.0);
         let _ = windows_audio::mute_spotify(true);
     } else {
-        // Restore player volume based on the active category if any, else default to 0.8
+        let is_tusch_active = state.active_tusch.lock().unwrap().is_some();
         let active_cat_opt = state.active_category.lock().unwrap().clone();
+
+        // Restore main player volume
         let target_vol = if let Some(cat_id) = &active_cat_opt {
             if let Some(category) = config.categories.get(cat_id) {
-                category.volume
+                if is_tusch_active {
+                    0.0
+                } else {
+                    category.volume
+                }
             } else {
                 0.8
             }
@@ -396,8 +541,13 @@ fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
         };
         state.player.set_volume(target_vol);
 
+        // Restore tusch overlay volume
+        if let Some(tusch_cat) = config.categories.get("tusch") {
+            state.player.set_overlay_volume(tusch_cat.volume);
+        }
+
         // Only unmute Spotify in the mixer if no jingle is currently playing and Spotify is not muted in config
-        if active_cat_opt.is_none() && !config.spotify_mute {
+        if active_cat_opt.is_none() && !is_tusch_active && !config.spotify_mute {
             let _ = windows_audio::mute_spotify(false);
         }
     }
@@ -407,7 +557,7 @@ fn mute_all(state: State<'_, AppState>, mute: bool) -> Result<(), String> {
 
 #[tauri::command]
 fn is_jingle_playing(state: State<'_, AppState>) -> bool {
-    state.player.is_playing()
+    state.player.is_any_playing()
 }
 
 #[tauri::command]
@@ -416,8 +566,30 @@ fn get_active_category(state: State<'_, AppState>) -> Option<String> {
 }
 
 #[tauri::command]
-fn set_jingle_volume(state: State<'_, AppState>, vol: f32) {
-    state.player.set_volume(vol);
+fn get_active_tusch(state: State<'_, AppState>) -> Option<String> {
+    state.active_tusch.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn set_jingle_volume(state: State<'_, AppState>, category_id: String, vol: f32) {
+    if category_id == "tusch" {
+        let is_master_mute = state.config.lock().unwrap().master_mute;
+        if !is_master_mute {
+            state.player.set_overlay_volume(vol);
+        }
+    } else {
+        let active_cat = state.active_category.lock().unwrap().clone();
+        if active_cat.as_deref() == Some(&category_id) {
+            let is_tusch_active = state.active_tusch.lock().unwrap().is_some();
+            let is_master_mute = state.config.lock().unwrap().master_mute;
+            let effective_vol = if is_master_mute || is_tusch_active {
+                0.0
+            } else {
+                vol
+            };
+            state.player.set_volume(effective_vol);
+        }
+    }
 }
 
 #[tauri::command]
@@ -486,6 +658,7 @@ pub fn run() {
                 config: Mutex::new(config),
                 queues: Mutex::new(std::collections::HashMap::new()),
                 active_category: Mutex::new(None),
+                active_tusch: Mutex::new(None),
                 queue_locks: Mutex::new(std::collections::HashSet::new()),
             });
             
@@ -500,9 +673,11 @@ pub fn run() {
             set_spotify_mixer_mute,
             play_category_jingle,
             stop_current_jingle,
+            stop_tusch_cmd,
             mute_all,
             is_jingle_playing,
             get_active_category,
+            get_active_tusch,
             set_jingle_volume,
             get_spotify_playback_state,
             get_song_duration,
@@ -513,8 +688,6 @@ pub fn run() {
             get_queues,
             set_queue
         ])
-
-
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
