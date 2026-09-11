@@ -1,11 +1,11 @@
 {
-  "version": "2.3.1",
-  "notes": "Startup Intro-Animation (Logo Spin & Slide-Up) und Info/Impressum Sektion hinzugefügt. Loop-Timer Synchronisations-Bug behoben.",
-  "pub_date": "2026-07-24T00:00:00Z",
+  "version": "2.4.0",
+  "notes": "Siegertusch Layering & Auto-Ducking, Jingle Loop-Timer Fix, Spotify Logo Fix und optimierte Fade-Out Kurven.",
+  "pub_date": "2026-09-11T21:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYWp0bjJjRS9adXZMVUxUWUI3ZStXaUZJeHZLOUNnMFg2L0JxQ2lEenZSUXZSR3pWL29hV3ZpVTlYQnVGeXEyTTV5L29XbEpvWUdrKzArMUJBUXpIWXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0OTIxNzMyCWZpbGU6RXF1aVNvdW5kXzIuMy4xX3g2NF9lbi1VUy5tc2kKb3RGeXJNR09qME1UT2Z3OGRYcVIzNENsNGxqVkxkd2NlKzI4dFpVYzk0dWF3bHF2OXJJYUxYNnlxK1ZnOEpPRGFqOVBLVlk0U1Fqd1R3aytyMGJmQWc9PQo=",
-      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.3.1/EquiSound_2.3.1_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSRFZWN2FEVW5aYW1NT3RPUHo2SFY4dkZnTVI3RXRaK2RUYm9pOE11clhxSzJRQUt2YjAyQ21iSmx5Ly9mNVo1cVArZUxCS3dsVXVWRVpXems4MXU5cDBNSGwrVUdrRndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MTYxNTc4CWZpbGU6RXF1aVNvdW5kXzIuNC4wX3g2NF9lbi1VUy5tc2kKR2dkNHFMTy9FK2NWZXVmSGZoTmE5OFFna2R1QmRvUzQwS1puUUN0dTFqMUU2ekpjbEg3UVorSzRUSk5DQ1MrL1BreTFST0FuZEtqNVArd2ZDY0NIQ1E9PQo=",
+      "url": "https://github.com/fc21off/rfv-soundboard-app/releases/download/v2.4.0/EquiSound_2.4.0_x64_en-US.msi"
     }
   }
 }
