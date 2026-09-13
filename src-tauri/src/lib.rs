@@ -639,6 +639,22 @@ fn get_queue_locks(state: State<'_, AppState>) -> Vec<String> {
     state.queue_locks.lock().unwrap().iter().cloned().collect()
 }
 
+#[tauri::command]
+fn get_audio_output_devices() -> Vec<String> {
+    AudioPlayer::get_output_devices()
+}
+
+#[tauri::command]
+fn set_audio_output_device_cmd(app: AppHandle, state: State<'_, AppState>, device_name: Option<String>) -> Result<(), String> {
+    state.player.set_device(device_name.as_deref())?;
+    {
+        let mut config = state.config.lock().unwrap();
+        config.audio_output_device = device_name;
+        let _ = config::save_config(&app, &config);
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -649,8 +665,9 @@ pub fn run() {
             // Load config or use default
             let config = config::load_config(&app.handle());
             
-            // Initialize Player
-            let player = AudioPlayer::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            // Initialize Player with configured device (if any)
+            let player = AudioPlayer::new(config.audio_output_device.as_deref())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
             
             // Manage State
             app.manage(AppState {
@@ -686,7 +703,9 @@ pub fn run() {
             add_to_queue,
             remove_from_queue,
             get_queues,
-            set_queue
+            set_queue,
+            get_audio_output_devices,
+            set_audio_output_device_cmd
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

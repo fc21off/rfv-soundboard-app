@@ -25,6 +25,7 @@ pub struct AppConfig {
     pub spotify_fade_duration_ms: u32,
     pub jingle_loop: bool,
     pub spotify_auto_fade_in: bool,
+    pub audio_output_device: Option<String>,
     pub categories: HashMap<String, JingleCategory>,
 }
 
@@ -92,6 +93,7 @@ impl Default for AppConfig {
             spotify_fade_duration_ms: 1000,
             jingle_loop: false,
             spotify_auto_fade_in: true,
+            audio_output_device: None,
             categories,
         }
     }

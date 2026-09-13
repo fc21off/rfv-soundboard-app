@@ -1,4 +1,5 @@
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
+use rodio::cpal::traits::{DeviceTrait, HostTrait};
+use rodio::{cpal, Decoder, OutputStream, OutputStreamHandle, Sink};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
@@ -9,27 +10,87 @@ use std::time::Duration;
 pub struct AudioPlayer {
     sink: Arc<Mutex<Option<Arc<Sink>>>>,
     overlay_sink: Arc<Mutex<Option<Arc<Sink>>>>,
-    stream_handle: OutputStreamHandle,
+    stream_handle: Arc<Mutex<Option<OutputStreamHandle>>>,
     generation: Arc<AtomicU64>,
     overlay_generation: Arc<AtomicU64>,
     duck_generation: Arc<AtomicU64>,
+    current_device: Arc<Mutex<Option<String>>>,
     // Keep the stream alive so the audio device remains active
-    _stream: OutputStream,
+    _stream: Arc<Mutex<Option<OutputStream>>>,
 }
 
 impl AudioPlayer {
-    pub fn new() -> Result<Self, String> {
-        let (stream, stream_handle) = OutputStream::try_default()
-            .map_err(|e| format!("Failed to open default audio output stream: {}", e))?;
+    pub fn get_output_devices() -> Vec<String> {
+        let host = cpal::default_host();
+        let mut names = Vec::new();
+        if let Ok(devices) = host.output_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    names.push(name);
+                }
+            }
+        }
+        names
+    }
+
+    fn open_device(device_name: Option<&str>) -> Result<(OutputStream, OutputStreamHandle), String> {
+        match device_name {
+            Some(name) if !name.is_empty() && name != "default" => {
+                let host = cpal::default_host();
+                let mut matched_device = None;
+                if let Ok(devices) = host.output_devices() {
+                    for dev in devices {
+                        if let Ok(dev_name) = dev.name() {
+                            if dev_name == name {
+                                matched_device = Some(dev);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if let Some(dev) = matched_device {
+                    OutputStream::try_from_device(&dev)
+                        .map_err(|e| format!("Failed to open audio device '{}': {}", name, e))
+                } else {
+                    // Fallback to default if selected device is disconnected
+                    OutputStream::try_default()
+                        .map_err(|e| format!("Named device '{}' not found and default device failed: {}", name, e))
+                }
+            }
+            _ => OutputStream::try_default()
+                .map_err(|e| format!("Failed to open default audio output stream: {}", e)),
+        }
+    }
+
+    pub fn new(initial_device: Option<&str>) -> Result<Self, String> {
+        let (stream, stream_handle) = Self::open_device(initial_device)?;
         Ok(Self {
             sink: Arc::new(Mutex::new(None)),
             overlay_sink: Arc::new(Mutex::new(None)),
-            stream_handle,
+            stream_handle: Arc::new(Mutex::new(Some(stream_handle))),
             generation: Arc::new(AtomicU64::new(0)),
             overlay_generation: Arc::new(AtomicU64::new(0)),
             duck_generation: Arc::new(AtomicU64::new(0)),
-            _stream: stream,
+            current_device: Arc::new(Mutex::new(initial_device.map(|s| s.to_string()))),
+            _stream: Arc::new(Mutex::new(Some(stream))),
         })
+    }
+
+    pub fn set_device(&self, device_name: Option<&str>) -> Result<(), String> {
+        self.stop_all_immediate();
+
+        let (stream, stream_handle) = Self::open_device(device_name)?;
+
+        let mut stream_lock = self._stream.lock().unwrap();
+        let mut handle_lock = self.stream_handle.lock().unwrap();
+        let mut current_dev_lock = self.current_device.lock().unwrap();
+
+        *stream_lock = Some(stream);
+        *handle_lock = Some(stream_handle);
+        *current_dev_lock = device_name.map(|s| s.to_string());
+
+        Ok(())
     }
 
     pub fn play(&self, path: &str, volume: f32) -> Result<(), String> {
@@ -42,7 +103,12 @@ impl AudioPlayer {
         let source = Decoder::new(reader)
             .map_err(|e| format!("Failed to decode audio file: {}", e))?;
 
-        let sink = Sink::try_new(&self.stream_handle)
+        let handle = {
+            let handle_lock = self.stream_handle.lock().unwrap();
+            handle_lock.clone().ok_or_else(|| "Audio output stream handle not available".to_string())?
+        };
+
+        let sink = Sink::try_new(&handle)
             .map_err(|e| format!("Failed to create audio sink: {}", e))?;
 
         // If overlay fanfare is currently playing, duck main volume immediately
@@ -70,7 +136,12 @@ impl AudioPlayer {
         let source = Decoder::new(reader)
             .map_err(|e| format!("Failed to decode audio file: {}", e))?;
 
-        let sink = Sink::try_new(&self.stream_handle)
+        let handle = {
+            let handle_lock = self.stream_handle.lock().unwrap();
+            handle_lock.clone().ok_or_else(|| "Audio output stream handle not available".to_string())?
+        };
+
+        let sink = Sink::try_new(&handle)
             .map_err(|e| format!("Failed to create audio sink: {}", e))?;
 
         let play_vol = if self.is_overlay_playing() {
@@ -98,7 +169,12 @@ impl AudioPlayer {
         let source = Decoder::new(reader)
             .map_err(|e| format!("Failed to decode audio file: {}", e))?;
 
-        let sink = Sink::try_new(&self.stream_handle)
+        let handle = {
+            let handle_lock = self.stream_handle.lock().unwrap();
+            handle_lock.clone().ok_or_else(|| "Audio output stream handle not available".to_string())?
+        };
+
+        let sink = Sink::try_new(&handle)
             .map_err(|e| format!("Failed to create overlay audio sink: {}", e))?;
 
         sink.set_volume(volume);

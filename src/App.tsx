@@ -24,6 +24,7 @@ interface AppConfig {
   spotify_fade_duration_ms: number;
   jingle_loop: boolean;
   spotify_auto_fade_in?: boolean;
+  audio_output_device?: string | null;
   categories: Record<string, JingleCategory>;
 }
 
@@ -73,6 +74,9 @@ const TRANSLATIONS = {
     settingTheme: "DESIGN-MODUS (THEME)",
     settingThemeDark: "Nacht-Modus (Dunkel)",
     settingThemeLight: "Tag-Modus (Hell / Outdoor)",
+    settingAudioDevice: "AUDIO-AUSGABEGERÄT (SOUNDKARTE / KLINKE)",
+    defaultAudioDevice: "Standard (Windows-Systemstandard)",
+    refreshAudioDevices: "Geräte aktualisieren",
     settingFade: "FADE-OUT DAUER (MS)",
     settingSpotifyFade: "SPOTIFY EINBLENDE-DAUER (MS)",
     settingSpotifyAutoFade: "SPOTIFY AUTOMATISCH EINBLENDEN NACH JINGLE",
@@ -149,6 +153,9 @@ const TRANSLATIONS = {
     settingTheme: "COLOR THEME",
     settingThemeDark: "Night Mode (Dark)",
     settingThemeLight: "Day Mode (Light / Outdoor)",
+    settingAudioDevice: "AUDIO OUTPUT DEVICE (SOUND CARD / JACK)",
+    defaultAudioDevice: "Default (Windows System Default)",
+    refreshAudioDevices: "Refresh Devices",
     settingFade: "FADE-OUT DURATION (MS)",
     settingSpotifyFade: "SPOTIFY FADE-IN DURATION (MS)",
     settingSpotifyAutoFade: "AUTO FADE-IN SPOTIFY AFTER JINGLE",
@@ -370,6 +377,22 @@ function App() {
   const [queues, setQueues] = useState<Record<string, string[]>>({});
   const [queueModalCategory, setQueueModalCategory] = useState<string | null>(null);
   const [lockedQueues, setLockedQueues] = useState<string[]>([]);
+  const [availableAudioDevices, setAvailableAudioDevices] = useState<string[]>([]);
+
+  const fetchAudioDevices = async () => {
+    try {
+      const devices = await invoke<string[]>("get_audio_output_devices");
+      setAvailableAudioDevices(devices);
+    } catch (err) {
+      console.error("Failed to fetch audio devices:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      fetchAudioDevices();
+    }
+  }, [isSettingsOpen]);
 
   // Refs for tracking header layout coordinates
   const headerLogoRef = useRef<HTMLImageElement>(null);
@@ -811,6 +834,20 @@ function App() {
       setConfig(updatedConfig);
     } catch (err) {
       console.error("Failed to save config:", err);
+    }
+  }
+
+  async function handleAudioDeviceChange(device: string) {
+    if (!config) return;
+    const devValue = device === "default" ? null : device;
+    const updatedConfig = { ...config, audio_output_device: devValue };
+    setConfig(updatedConfig);
+    try {
+      await invoke("set_audio_output_device_cmd", { deviceName: devValue });
+      await saveConfig(updatedConfig);
+    } catch (err) {
+      console.error("Failed to switch audio output device:", err);
+      setErrorMessage("Audio Device Error: " + String(err));
     }
   }
 
@@ -1644,6 +1681,33 @@ function App() {
                 </select>
               </div>
 
+              {/* Audio Output Device Selector */}
+              <div className="setting-item">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ margin: 0 }}>{t.settingAudioDevice}</label>
+                  <button
+                    className="btn-control"
+                    style={{ padding: "2px 8px", fontSize: "11px", height: "auto", border: "1px solid var(--border-panel, #444)" }}
+                    onClick={fetchAudioDevices}
+                    title={t.refreshAudioDevices}
+                  >
+                    🔄 {t.refreshAudioDevices}
+                  </button>
+                </div>
+                <select 
+                  className="select-control"
+                  value={config.audio_output_device || "default"}
+                  onChange={(e) => handleAudioDeviceChange(e.target.value)}
+                >
+                  <option value="default">{t.defaultAudioDevice}</option>
+                  {availableAudioDevices.map((dev) => (
+                    <option key={dev} value={dev}>
+                      {dev}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Fade out Slider */}
               <div className="setting-item">
                 <label>{t.settingFade}: {config.fade_duration_ms}ms</label>
@@ -1769,10 +1833,11 @@ function App() {
               
               {/* Credits / Impressum Section */}
               <div style={{ marginTop: "20px", borderTop: "1px solid var(--border-color, #444)", paddingTop: "15px" }}>
-                <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6" }}>
+                <div style={{ fontSize: "12px", color: "var(--text-secondary, #aaa)", lineHeight: "1.6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <p style={{ margin: "2px 0" }}>
                     © {new Date().getFullYear()} Lukas Rischmüller & RFV Leonberg. {t.infoRights}
                   </p>
+                  <span style={{ fontWeight: "bold", color: "var(--accent-brand)", fontSize: "12px" }}>v2.4.1</span>
                 </div>
               </div>
             </div>
@@ -1789,6 +1854,7 @@ function App() {
                       master_mute: false,
                       theme: "dark",
                       language: "de",
+                      audio_output_device: null,
                       fade_duration_ms: 1200,
                       spotify_fade_duration_ms: 1000,
                       jingle_loop: false,
@@ -1801,6 +1867,9 @@ function App() {
                         tusch: { id: "tusch", name: "Siegertusch", volume: 0.8, songs: [] }
                       }
                     };
+                    try {
+                      await invoke("set_audio_output_device_cmd", { deviceName: null });
+                    } catch (_) {}
                     await saveConfig(defaultCfg);
                     setIsSettingsOpen(false);
                   }
